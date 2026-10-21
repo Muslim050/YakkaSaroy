@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Yakka Saroy — сайт ресторана и банкетного зала
 
-## Getting Started
+Лендинг с проверкой свободных дат и онлайн-бронированием. Next.js 16 (App Router), Tailwind CSS 4, TypeScript.
 
-First, run the development server:
+## Запуск
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Сайт откроется на http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Что внутри
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `src/app/page.tsx` — главная страница, собирает секции.
+- `src/components/` — секции: шапка, hero с быстрой проверкой даты, о ресторане, залы, меню, галерея, бронирование, контакты.
+- `src/lib/data.ts` — весь контент: залы, цены, меню, фото, контакты. Правьте здесь.
+- `src/lib/store.ts` — хранилище броней. Пока это JSON-файл `data/bookings.json` плюс демо-данные на 120 дней вперёд (выходные в основном заняты, будни свободны).
+- `src/app/api/availability` — `GET ?month=YYYY-MM`, отдаёт занятость по дням, залам и времени.
+- `src/app/api/bookings` — `POST`, принимает заявку, проверяет что время ещё свободно, выдаёт номер брони.
 
-## Learn More
+## Что заменить перед запуском
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **Фото.** Сейчас стоят картинки с Unsplash. Положите свои в `public/` и замените ссылки в `src/lib/data.ts` и `src/components/Hero.tsx`, `About.tsx`.
+2. **Телефон.** В `CONTACTS` в `src/lib/data.ts` стоит заглушка `+998 71 000 00 00`.
+3. **Цены и меню.** Там же, в `HALLS` и `MENU`.
+4. **Хранилище броней.** JSON-файл подходит для локального запуска и одного сервера. На Vercel файловая система не сохраняется между запросами, поэтому для продакшена нужно подключить базу (Postgres/Supabase через Vercel Marketplace) в `src/lib/store.ts` — остальной код менять не надо.
+5. **Уведомления.** Сейчас заявка только сохраняется. Добавьте отправку в Telegram или на почту менеджера в `src/app/api/bookings/route.ts` после `createBooking`.

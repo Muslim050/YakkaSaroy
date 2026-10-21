@@ -1,26 +1,223 @@
+/* Yakka Saroy site styles. Palette and fonts live in :root and @theme; shadcn tokens are mapped onto them. */
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Yakka Saroy: night-blue facade lighting, brass, warm limestone */
+  --night: #0d1828;
+  --night-2: #132236;
+  --night-3: #1b2d45;
+  --stone: #ece5d8;
+  --stone-2: #ddd3c1;
+  --ivory: #f7f3ec;
+  --gold: #c4a36b;
+  --gold-2: #e2cc9f;
+  --gold-dim: #8b7246;
+  --wine: #7d2a35;
+  --ink: #17202e;
+  --mute: #66655f;
+
+  /* shadcn tokens, mapped to the Yakka Saroy palette (night blue + gold) */
+  --background: #0d1828;
+  --foreground: #f7f3ec;
+  --card: #132236;
+  --card-foreground: #fbf7ee;
+  --popover: #101d30;
+  --popover-foreground: #fbf7ee;
+  --primary: #c4a36b;
+  --primary-foreground: #0d1828;
+  --secondary: #1b2d45;
+  --secondary-foreground: #fbf7ee;
+  --muted: #1b2d45;
+  --muted-foreground: rgba(247, 243, 236, 0.55);
+  --accent: rgba(196, 163, 107, 0.16);
+  --accent-foreground: #e2cc9f;
+  --destructive: #c2465a;
+  --border: rgba(196, 163, 107, 0.25);
+  --input: rgba(196, 163, 107, 0.35);
+  --ring: #c4a36b;
+  --chart-1: #c4a36b;
+  --chart-2: #e2cc9f;
+  --chart-3: #8b7246;
+  --chart-4: #7d2a35;
+  --chart-5: #1b2d45;
+  --radius: 0.75rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --color-night: var(--night);
+  --color-night-2: var(--night-2);
+  --color-night-3: var(--night-3);
+  --color-stone: var(--stone);
+  --color-stone-2: var(--stone-2);
+  --color-ivory: var(--ivory);
+  --color-gold: var(--gold);
+  --color-gold-2: var(--gold-2);
+  --color-gold-dim: var(--gold-dim);
+  --color-wine: var(--wine);
+  --color-ink: var(--ink);
+  --color-mute: var(--mute);
+  --font-display: var(--font-forum), "Forum", Georgia, serif;
+  --font-sans: var(--font-golos), "Golos Text", system-ui, sans-serif;
+  --font-heading: var(--font-display);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ivory);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  font-feature-settings: "liga", "kern";
+}
+
+::selection { background: var(--gold-2); color: var(--night); }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+.scroll-x { scrollbar-width: thin; scrollbar-color: var(--gold-dim) transparent; }
+
+.input {
+  width: 100%;
+  background: var(--night-2);
+  border: 1px solid rgba(196, 163, 107, .3);
+  color: var(--ivory);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 15px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.input::placeholder { color: rgba(247, 243, 236, .4); }
+.input:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 0 3px rgba(196, 163, 107, .18); }
+
+/* ---------- The one orchestrated moment: the hero arrives ---------- */
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 1s cubic-bezier(.2,.7,.2,1) both; }
+.rise-2 { animation-delay: .12s; }
+.rise-3 { animation-delay: .24s; }
+.rise-4 { animation-delay: .4s; }
+
+.hero-photo { transform: scale(1.08); animation: push-in 6s cubic-bezier(.2,.6,.2,1) both; }
+@keyframes push-in { to { transform: scale(1); } }
+
+/* ---------- Scroll effects (only where the browser supports scroll timelines) ---------- */
+@supports (animation-timeline: scroll()) {
+  /* hero photo sinks slower than the page, the copy lifts and fades */
+  .hero-photo { animation: push-in 6s cubic-bezier(.2,.6,.2,1) both, hero-parallax linear both; animation-timeline: auto, scroll(root); animation-range: normal, 0 100vh; }
+  .hero-copy { animation: hero-copy linear both; animation-timeline: scroll(root); animation-range: 0 75vh; }
+  /* reading progress along the bottom of the header capsule */
+  .progress { animation: progress linear both; animation-timeline: scroll(root); }
+}
+@keyframes hero-parallax { to { translate: 0 18%; } }
+@keyframes hero-copy { to { translate: 0 -10%; opacity: 0; } }
+@keyframes progress { to { transform: scaleX(1); } }
+
+.progress {
+  position: absolute; left: 28px; right: 28px; bottom: -1px; height: 1.5px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold-2));
+  transform-origin: left; transform: scaleX(0); pointer-events: none;
+}
+
+/* Photo slides inside its frame while the frame passes the screen */
+@supports (animation-timeline: view()) {
+  .parallax-img { scale: 1.15; animation: parallax-y linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+}
+@keyframes parallax-y { from { translate: 0 -6%; } to { translate: 0 6%; } }
+
+/* Gallery: on desktop the strip moves sideways while you scroll down; elsewhere it is a swipeable row */
+.hscroll-track { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: .5rem; scrollbar-width: none; }
+.hscroll-track::-webkit-scrollbar { display: none; }
+.hscroll-track > * { scroll-snap-align: start; }
+@supports (animation-timeline: view()) {
+  @media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+    .hscroll { height: 280vh; view-timeline-name: --gallery; view-timeline-axis: block; view-timeline-inset: 0; }
+    .hscroll-sticky { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding-top: 4.5rem; }
+    .hscroll-track { overflow: visible; width: max-content; scroll-snap-type: none; animation: hscroll linear both; animation-timeline: --gallery; animation-range: contain 0% contain 100%; }
+    .hscroll-meter { display: block; }
+    .hscroll-count { animation: hscroll-count linear both; animation-timeline: --gallery; animation-range: contain 0% contain 100%; transform-origin: left; }
+  }
+}
+.hscroll-meter { display: none; }
+.hscroll-pad { --pad: 1.25rem; padding-left: var(--pad); }
+@media (min-width: 640px) { .hscroll-pad { --pad: max(2rem, calc((100vw - 72rem) / 2 + 2rem)); } }
+@keyframes hscroll { to { translate: calc(-100% + 100vw - var(--pad) - var(--pad)) 0; } }
+@keyframes hscroll-count { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .rise, .hero-photo, .hero-copy, .progress, .parallax-img { animation: none !important; transform: none; scale: 1; translate: none; opacity: 1; }
+  .progress { display: none; }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
 }
