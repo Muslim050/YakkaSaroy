@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { adminOrNull } from "@/lib/auth";
-import { getBooking, isFree, updateBooking, type BookingPatch } from "@/lib/store";
+import { getBooking, getCatalog, isFree, updateBooking, type BookingPatch } from "@/lib/store";
 import { checkGuests, isEventType, isStatus } from "@/lib/validate";
 import { normalizeSelection } from "@/lib/program";
 
@@ -54,7 +54,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/admin/
 
   if (body.extras !== undefined) {
     if (booking.hall === "restaurant") return NextResponse.json({ error: "Для столика программа не нужна" }, { status: 400 });
-    const sel = normalizeSelection(body.extras);
+    const sel = normalizeSelection(await getCatalog(), body.extras, booking.extras);
     if (!sel.ok) return NextResponse.json({ error: sel.error }, { status: 400 });
     patch.extras = sel.value;
   }

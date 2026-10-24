@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HALLS, SLOTS, type HallId } from "@/lib/data";
 import { type Booking, type BookingStatus } from "@/lib/bookings";
+import type { Catalog } from "@/lib/program";
 import { BookingSheet } from "./BookingSheet";
 import { NewBookingSheet, type NewBookingPreset } from "./NewBookingSheet";
 
@@ -19,7 +20,7 @@ const WD = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 const BANQUET = HALLS.filter((h) => h.id !== "restaurant");
 
 /** Month board: one row per day, a day and an evening column per hall. */
-export function CalendarBoard({ days, bookings, today }: { days: string[]; bookings: Booking[]; today: string }) {
+export function CalendarBoard({ days, bookings, catalog, today }: { days: string[]; bookings: Booking[]; catalog: Catalog; today: string }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState<NewBookingPreset | null>(null);
   const [saved, setSaved] = useState<Booking | null>(null);
@@ -101,7 +102,7 @@ export function CalendarBoard({ days, bookings, today }: { days: string[]; booki
         </table>
       </div>
 
-      <BookingSheet booking={open} onClose={() => setOpenId(null)} onSaved={setSaved} />
+      <BookingSheet booking={open} catalog={catalog} onClose={() => setOpenId(null)} onSaved={setSaved} />
       <NewBookingSheet preset={creating} onClose={() => setCreating(null)} />
     </>
   );

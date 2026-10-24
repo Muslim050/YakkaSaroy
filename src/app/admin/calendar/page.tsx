@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/app/AppShell";
 import { CalendarBoard } from "@/components/admin/CalendarBoard";
 import { requireAdmin } from "@/lib/auth";
-import { hallBookingsForMonth, toISODate } from "@/lib/store";
+import { getCatalog, hallBookingsForMonth, toISODate } from "@/lib/store";
 import { STATUS, STATUS_ORDER } from "@/lib/bookings";
 
 const MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
@@ -30,7 +30,7 @@ async function Board({ searchParams }: { searchParams: PageProps<"/admin/calenda
     const d = new Date(y, m - 1 + n, 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
-  const bookings = await hallBookingsForMonth(raw);
+  const [bookings, catalog] = await Promise.all([hallBookingsForMonth(raw), getCatalog()]);
 
   return (
     <>
@@ -62,7 +62,7 @@ async function Board({ searchParams }: { searchParams: PageProps<"/admin/calenda
         ))}
       </ul>
 
-      <CalendarBoard days={days} bookings={bookings} today={today} />
+      <CalendarBoard days={days} bookings={bookings} catalog={catalog} today={today} />
     </>
   );
 }

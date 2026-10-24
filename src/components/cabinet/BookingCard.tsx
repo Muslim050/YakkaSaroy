@@ -15,6 +15,7 @@ import {
   slotLabel,
   type ClientBooking,
 } from "@/lib/bookings";
+import type { Catalog } from "@/lib/program";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { ProgramSummary } from "@/components/program/ProgramSummary";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -60,7 +61,7 @@ function steps(b: ClientBooking, today: string) {
   });
 }
 
-export function BookingCard({ booking: b, today }: { booking: ClientBooking; today: string }) {
+export function BookingCard({ booking: b, catalog, today }: { booking: ClientBooking; catalog: Catalog; today: string }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -68,7 +69,7 @@ export function BookingCard({ booking: b, today }: { booking: ClientBooking; tod
   const [busy, setBusy] = useState(false);
 
   const isTable = b.hall === "restaurant";
-  const total = estimateTotal(b);
+  const total = estimateTotal(b, catalog);
   const editable = clientCanEdit(b) && b.date >= today;
   const max = HALLS.find((h) => h.id === b.hall)?.guestsMax ?? 0;
 
@@ -147,6 +148,7 @@ export function BookingCard({ booking: b, today }: { booking: ClientBooking; tod
           <h3 className="text-sm text-muted-foreground">Программа торжества</h3>
           <ProgramSummary
             className="mt-3"
+            catalog={catalog}
             extras={b.extras}
             href={`/cabinet/program/${b.id}`}
             cta={editable ? "Выбрать меню, оформление и шоу" : "Посмотреть программу"}

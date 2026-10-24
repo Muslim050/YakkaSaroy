@@ -4,7 +4,7 @@ import { Phone } from "lucide-react";
 import { PageHeader } from "@/components/app/AppShell";
 import { BookingCard } from "@/components/cabinet/BookingCard";
 import { requireClient } from "@/lib/auth";
-import { bookingsByPhone, toISODate } from "@/lib/store";
+import { bookingsByPhone, getCatalog, toISODate } from "@/lib/store";
 import { toClientView } from "@/lib/bookings";
 import { CONTACTS } from "@/lib/data";
 
@@ -19,7 +19,7 @@ export default function CabinetPage() {
 async function Cabinet() {
   const me = await requireClient();
   const today = toISODate(new Date());
-  const all = (await bookingsByPhone(me.phone)).map(toClientView);
+  const [all, catalog] = await Promise.all([bookingsByPhone(me.phone).then((list) => list.map(toClientView)), getCatalog()]);
   const upcoming = all.filter((b) => b.date >= today && b.status !== "cancelled").sort((a, b) => a.date.localeCompare(b.date));
   const past = all.filter((b) => !(b.date >= today && b.status !== "cancelled"));
   const firstName = me.name.split(" ")[0];
@@ -37,7 +37,7 @@ async function Cabinet() {
           <section className="grid gap-5">
             <h2 className="text-sm font-medium text-muted-foreground">Предстоящие</h2>
             {upcoming.length ? (
-              upcoming.map((b) => <BookingCard key={b.id} booking={b} today={today} />)
+              upcoming.map((b) => <BookingCard key={b.id} booking={b} catalog={catalog} today={today} />)
             ) : (
               <div className="rounded-xl border border-dashed border-border p-8 text-center">
                 <p className="font-display text-2xl text-night">Впереди пока ничего нет</p>
@@ -52,7 +52,7 @@ async function Cabinet() {
             <section className="grid gap-5">
               <h2 className="text-sm font-medium text-muted-foreground">Прошедшие и отменённые</h2>
               {past.map((b) => (
-                <BookingCard key={b.id} booking={b} today={today} />
+                <BookingCard key={b.id} booking={b} catalog={catalog} today={today} />
               ))}
             </section>
           )}

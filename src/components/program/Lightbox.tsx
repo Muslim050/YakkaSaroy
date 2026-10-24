@@ -1,11 +1,10 @@
 "use client";
 
-import Image from "next/image";
-import { ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/program";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { MediaView } from "./MediaView";
+import { MediaThumb, MediaView } from "./MediaView";
 
 /** Full-screen look at an option's photos and videos, with sound and controls for video. */
 export function Lightbox({
@@ -59,14 +58,13 @@ export function Lightbox({
             <div className="flex gap-2">
               {media.map((x, k) => (
                 <button
-                  key={x.src}
+                  key={`${k}-${x.src}`}
                   type="button"
                   aria-label={`Показать: ${x.alt}`}
                   onClick={() => onIndex(k)}
                   className={cn("relative h-12 w-16 overflow-hidden rounded-md ring-2 transition", k === i ? "ring-gold" : "opacity-60 ring-transparent hover:opacity-100")}
                 >
-                  <Image src={x.kind === "image" ? x.src : x.poster} alt="" fill sizes="64px" className="object-cover" />
-                  {x.kind === "video" && <Play className="absolute inset-0 m-auto size-4 fill-ivory text-ivory drop-shadow" />}
+                  <MediaThumb media={x} sizes="64px" iconClassName="size-4" />
                 </button>
               ))}
             </div>

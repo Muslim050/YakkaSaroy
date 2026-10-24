@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/app/AppShell";
 import { BookingsView } from "@/components/admin/BookingsView";
 import { requireAdmin } from "@/lib/auth";
-import { countByStatus, getBooking, listBookings } from "@/lib/store";
+import { countByStatus, getBooking, getCatalog, listBookings } from "@/lib/store";
 import { isStatus } from "@/lib/validate";
 import { HALLS, type HallId } from "@/lib/data";
 
@@ -28,7 +28,7 @@ async function Bookings({ searchParams }: { searchParams: PageProps<"/admin/book
   const q = one("q");
   const page = Number(one("page")) || 1;
 
-  const [list, counts] = await Promise.all([listBookings({ kind, status, hall, q, page }), countByStatus(kind)]);
+  const [list, counts, catalog] = await Promise.all([listBookings({ kind, status, hall, q, page }), countByStatus(kind), getCatalog()]);
   const focus = one("open") ? await getBooking(one("open")) : null;
 
   return (
@@ -40,6 +40,7 @@ async function Bookings({ searchParams }: { searchParams: PageProps<"/admin/book
       counts={counts}
       query={{ kind, status, hall: hall ?? "", q }}
       focus={focus}
+      catalog={catalog}
     />
   );
 }

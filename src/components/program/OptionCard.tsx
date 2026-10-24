@@ -1,15 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
-import { Check, Expand, Play, Plus } from "lucide-react";
+import { Check, Expand, Minus, Play, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatSum, formatSumShort } from "@/lib/bookings";
 import { optionCost, type ProgramCategory, type ProgramOption } from "@/lib/program";
-import { MediaView } from "./MediaView";
+import { MediaThumb, MediaView } from "./MediaView";
 import { Lightbox } from "./Lightbox";
 
-export function priceLabel(o: ProgramOption) {
+export function priceLabel(o: Pick<ProgramOption, "price">) {
   if (o.price.type === "included") return "Входит в стоимость зала";
   if (o.price.type === "perGuest") return `+${formatSum(o.price.amount)} за гостя`;
   return `+${formatSum(o.price.amount)}`;
@@ -21,6 +20,7 @@ export function OptionCard({
   selected,
   guests,
   disabled,
+  gone = false,
   onToggle,
 }: {
   option: ProgramOption;
@@ -28,6 +28,8 @@ export function OptionCard({
   selected: boolean;
   guests: number;
   disabled: boolean;
+  /** Was chosen earlier but is no longer offered: it can only be removed. */
+  gone?: boolean;
   onToggle: () => void;
 }) {
   const [i, setI] = useState(0);
@@ -45,7 +47,7 @@ export function OptionCard({
       <div className="relative aspect-[4/3] overflow-hidden bg-night">
         <button type="button" onClick={() => setBox(i)} aria-label={`Смотреть крупно: ${o.title}`} className="absolute inset-0 z-10 cursor-zoom-in" />
         {m && <MediaView media={m} sizes="(min-width:1280px) 26vw, (min-width:640px) 45vw, 92vw" className="transition-transform duration-700 group-hover:scale-[1.03]" />}
-        {m?.kind === "video" && (
+        {m?.kind === "video" && !gone && (
           <span className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-night/70 px-2.5 py-1 text-xs text-ivory backdrop-blur">
             <Play className="size-3 fill-ivory" /> видео
           </span>
@@ -58,18 +60,23 @@ export function OptionCard({
             <Check className="size-3.5" /> Выбрано
           </span>
         )}
+        {gone && (
+          <span className="pointer-events-none absolute left-3 top-3 z-10 rounded-full bg-ivory/90 px-2.5 py-1 text-xs font-medium text-night backdrop-blur">
+            Больше не предлагается
+          </span>
+        )}
+        {!m && <span className="absolute inset-0 grid place-items-center text-sm text-ivory/50">Фото скоро появится</span>}
         {o.media.length > 1 && (
           <div className="absolute bottom-3 right-3 z-20 flex gap-1.5">
             {o.media.map((x, k) => (
               <button
-                key={x.src}
+                key={`${k}-${x.src}`}
                 type="button"
                 aria-label={`Показать: ${x.alt}`}
                 onClick={() => setI(k)}
                 className={cn("relative h-9 w-12 overflow-hidden rounded-md ring-2 transition", k === i ? "ring-ivory" : "opacity-70 ring-transparent hover:opacity-100")}
               >
-                <Image src={x.kind === "image" ? x.src : x.poster} alt="" fill sizes="48px" className="object-cover" />
-                {x.kind === "video" && <Play className="absolute inset-0 m-auto size-3.5 fill-ivory text-ivory drop-shadow" />}
+                <MediaThumb media={x} sizes="48px" />
               </button>
             ))}
           </div>
@@ -95,7 +102,7 @@ export function OptionCard({
         </ul>
         <button
           type="button"
-          disabled={disabled}
+          disabled={disabled || (gone && !selected)}
           onClick={onToggle}
           aria-pressed={selected}
           className={cn(
@@ -103,14 +110,26 @@ export function OptionCard({
             selected ? "bg-gold text-night hover:bg-gold-2" : "border border-night/20 text-night hover:border-night hover:bg-night hover:text-ivory",
           )}
         >
-          {selected ? <Check className="size-4" /> : category.pick === "many" ? <Plus className="size-4" /> : null}
-          {selected
-            ? category.pick === "many" || !category.required
-              ? "Выбрано, нажмите чтобы убрать"
-              : "Выбрано"
-            : category.pick === "many"
-              ? "Добавить"
-              : "Выбрать"}
+          {gone ? (
+            selected ? (
+              <>
+                <Minus className="size-4" /> Убрать из программы
+              </>
+            ) : (
+              "Больше не предлагается"
+            )
+          ) : (
+            <>
+              {selected ? <Check className="size-4" /> : category.pick === "many" ? <Plus className="size-4" /> : null}
+              {selected
+                ? category.pick === "many" || !category.required
+                  ? "Выбрано, нажмите чтобы убрать"
+                  : "Выбрано"
+                : category.pick === "many"
+                  ? "Добавить"
+                  : "Выбрать"}
+            </>
+          )}
         </button>
       </div>
 

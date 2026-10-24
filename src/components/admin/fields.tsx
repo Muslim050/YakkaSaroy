@@ -34,8 +34,8 @@ export function ErrorNote({ error }: { error: string }) {
   );
 }
 
-export async function api(url: string, method: "POST" | "PATCH", body: unknown) {
-  const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+export async function api(url: string, method: "POST" | "PATCH" | "DELETE", body?: unknown) {
+  const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
   const json = (await res.json().catch(() => ({}))) as { error?: string; booking?: unknown };
   return res.ok ? { ok: true as const, json } : { ok: false as const, error: json.error ?? "Не получилось сохранить" };
 }

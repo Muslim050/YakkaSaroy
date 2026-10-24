@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ProgramPlanner } from "@/components/program/ProgramPlanner";
 import { requireAdmin } from "@/lib/auth";
-import { getBooking } from "@/lib/store";
+import { getBooking, getCatalog } from "@/lib/store";
 
 export default function AdminProgramPage({ params }: PageProps<"/admin/bookings/[id]/program">) {
   return (
@@ -22,6 +22,7 @@ async function Program({ params }: { params: PageProps<"/admin/bookings/[id]/pro
   return (
     <ProgramPlanner
       booking={{ id: b.id, code: b.code, hall: b.hall, date: b.date, slot: b.slot, guests: b.guests, eventType: b.eventType, extras: b.extras }}
+      catalog={await getCatalog()}
       endpoint={`/api/admin/bookings/${b.id}`}
       editable={editable}
       lockedNote={b.status === "cancelled" ? "Бронь отменена, программу менять нельзя." : "Торжество уже прошло."}

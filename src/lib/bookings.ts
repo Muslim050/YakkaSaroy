@@ -1,5 +1,5 @@
 import { HALLS, SLOTS, type HallId } from "./data";
-import { programCost, type ProgramSelection } from "./program";
+import { programCost, type Catalog, type ProgramSelection } from "./program";
 
 /**
  * Booking lifecycle, in the same order as the steps on the public page:
@@ -70,9 +70,9 @@ export function slotLabel(hall: HallId, slot: string) {
 }
 
 /** Banquet estimate: hall price per guest plus the chosen program. Restaurant tables have no estimate. */
-export function estimateTotal(b: Pick<Booking, "hall" | "guests"> & { extras?: ProgramSelection }) {
+export function estimateTotal(b: Pick<Booking, "hall" | "guests"> & { extras?: ProgramSelection }, catalog: Catalog) {
   const price = HALLS.find((h) => h.id === b.hall)?.pricePerGuest;
-  return price ? price * b.guests + programCost(b.extras, b.guests) : null;
+  return price ? price * b.guests + programCost(catalog, b.extras, b.guests) : null;
 }
 
 /** Hall part of the estimate only (includes the classic menu and decor). */

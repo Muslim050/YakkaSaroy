@@ -4,7 +4,8 @@ import path from "node:path";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { HALLS, RESTAURANT_HOURS, RESTAURANT_TABLES, SLOTS, EVENT_TYPES, type HallId, type SlotId } from "./data";
 import type { DayAvailability } from "./availability";
-import { describeChange, type ProgramSelection } from "./program";
+import { describeChange, offered, withDefaults, type Catalog, type CategoryId, type ProgramOption, type ProgramSelection } from "./program";
+import { seedCatalog } from "./programSeed";
 import {
   STATUS,
   estimateTotal,
@@ -25,6 +26,8 @@ type Store = {
   version: number;
   bookings: Booking[];
   users: AdminUser[];
+  /** Program options managers edit in the admin; filled from programSeed on first run. */
+  catalog?: Catalog;
   seededFrom?: string;
   seededUntil?: string;
 };
@@ -79,7 +82,7 @@ const DEMO_CLIENTS = [
   { name: "Тимур Рахимов", phone: "+998 93 555 12 34" },
 ];
 
-function seedStore(today: Date, keep: Booking[]): Store {
+function seedStore(today: Date, keep: Booking[], catalog: Catalog): Store {
   const rand = mulberry(20261023);
   const pick = <T,>(arr: readonly T[]) => arr[Math.floor(rand() * arr.length)];
   const todayIso = toISODate(today);
@@ -148,7 +151,7 @@ function seedStore(today: Date, keep: Booking[]): Store {
         if (past) status = r < 0.05 ? "cancelled" : "done";
         else if (i <= 14) status = r < 0.7 ? "prepaid" : "confirmed";
         else status = r < 0.04 ? "new" : r < 0.55 ? "confirmed" : "prepaid";
-        const total = estimateTotal({ hall: hall.id, guests }) ?? 0;
+        const total = estimateTotal({ hall: hall.id, guests }, catalog) ?? 0;
         const prepaid = status === "prepaid" || status === "done";
         out.push(
           make(
@@ -182,6 +185,7 @@ function seedStore(today: Date, keep: Booking[]): Store {
     version: VERSION,
     bookings: [...out, ...keep],
     users,
+    catalog,
     seededFrom: toISODate(addDays(today, -PAST_DAYS)),
     seededUntil: toISODate(addDays(today, FUTURE_DAYS)),
   };
@@ -223,11 +227,16 @@ async function load(): Promise<Store> {
 
   let store: Store;
   if (raw.version !== VERSION || !raw.seededUntil || raw.seededUntil < horizon) {
-    store = seedStore(today, real);
+    // The catalog is the managers' work, a re-seed never resets it.
+    store = seedStore(today, real, raw.catalog ?? seedCatalog());
     if (raw.version === VERSION && raw.users?.length) store.users = raw.users;
     await persist(store);
   } else {
     store = raw as Store;
+    if (!store.catalog) {
+      store.catalog = seedCatalog();
+      await persist(store);
+    }
   }
   globalThis.__yakkaStore = store;
   return store;
@@ -243,6 +252,12 @@ async function persist(store: Store) {
 }
 
 const active = (b: Booking) => b.status !== "cancelled";
+
+/** A store cached in memory before the catalog existed gets the seed on first use. */
+function catalogOf(store: Store): Catalog {
+  store.catalog ??= seedCatalog();
+  return store.catalog;
+}
 
 /* ----------------------------------------------------------- availability */
 
@@ -357,7 +372,7 @@ export async function updateBooking(id: string, patch: BookingPatch, by: "client
     b.phone = patch.phone;
   }
   if (patch.extras !== undefined) {
-    const line = describeChange(b.extras, patch.extras);
+    const line = describeChange(catalogOf(store), b.extras, patch.extras);
     if (line) log(line);
     b.extras = patch.extras;
   }
@@ -465,7 +480,7 @@ export async function listClients(q?: string) {
       if (!c.nextDate || b.date < c.nextDate) c.nextDate = b.date;
     }
     if (b.date > c.lastDate) c.lastDate = b.date;
-    if (b.status === "done") c.spent += estimateTotal(b) ?? 0;
+    if (b.status === "done") c.spent += estimateTotal(b, catalogOf(store)) ?? 0;
     else c.spent += b.prepayment ?? 0;
     map.set(key, c);
   }
@@ -492,7 +507,7 @@ export async function overview() {
   const week = halls.filter((b) => b.date >= today && b.date < in7 && active(b)).sort((a, b) => a.date.localeCompare(b.date) || a.slot.localeCompare(b.slot));
   const next30 = halls.filter((b) => b.date >= today && b.date < in30 && active(b));
   const prepaid30 = next30.reduce((s, b) => s + (b.prepayment ?? 0), 0);
-  const expected30 = next30.reduce((s, b) => s + (estimateTotal(b) ?? 0), 0);
+  const expected30 = next30.reduce((s, b) => s + (estimateTotal(b, catalogOf(store)) ?? 0), 0);
   const tastings = halls
     .filter((b) => b.tastingAt && b.tastingAt.slice(0, 10) >= today && b.tastingAt.slice(0, 10) < in7 && active(b))
     .sort((a, b) => (a.tastingAt ?? "").localeCompare(b.tastingAt ?? ""));
@@ -507,6 +522,104 @@ export async function overview() {
   const tablesToday = store.bookings.filter((b) => b.hall === "restaurant" && b.date === today && active(b)).length;
 
   return { newRequests, week, next30: next30.length, prepaid30, expected30, tastings, occupancy, tablesToday };
+}
+
+/* ---------------------------------------------------------------- catalog */
+
+export async function getCatalog(): Promise<Catalog> {
+  return catalogOf(await load());
+}
+
+export type OptionInput = Pick<ProgramOption, "title" | "description" | "includes" | "price" | "media" | "order" | "hidden">;
+
+function locate(catalog: Catalog, id: string) {
+  for (const category of catalog) {
+    const option = category.options.find((o) => o.id === id && !o.archived);
+    if (option) return { category, option };
+  }
+  return null;
+}
+
+/** A required category (menu, decor) must keep at least one option guests can pick. */
+function lastOffered(catalog: Catalog, id: string) {
+  const found = locate(catalog, id);
+  if (!found?.category.required) return null;
+  const list = offered(found.category);
+  return list.length === 1 && list[0].id === id ? found.category : null;
+}
+
+/**
+ * Bookings without an explicit menu or decor follow the catalog's defaults. Write those
+ * defaults into them before the catalog changes, so their choice stays what it was.
+ */
+function pinDefaults(store: Store) {
+  const catalog = catalogOf(store);
+  for (const b of store.bookings) if (b.hall !== "restaurant") b.extras = withDefaults(catalog, b.extras);
+}
+
+export async function createOption(categoryId: CategoryId, input: OptionInput) {
+  const store = await load();
+  const category = catalogOf(store).find((c) => c.id === categoryId);
+  if (!category) return { ok: false as const, error: "Нет такого раздела" };
+  pinDefaults(store);
+  const option: ProgramOption = { ...input, id: `${categoryId}-${randomBytes(4).toString("hex")}` };
+  category.options.push(option);
+  await persist(store);
+  return { ok: true as const, option };
+}
+
+export async function updateOption(id: string, input: Partial<OptionInput>) {
+  const store = await load();
+  const catalog = catalogOf(store);
+  const found = locate(catalog, id);
+  if (!found) return { ok: false as const, error: "Вариант не найден" };
+  const required = input.hidden ? lastOffered(catalog, id) : null;
+  if (required) return { ok: false as const, error: `В разделе «${required.title}» гостям должен остаться хотя бы один вариант` };
+  pinDefaults(store);
+  Object.assign(found.option, input);
+  if (!found.option.hidden) delete found.option.hidden;
+  await persist(store);
+  return { ok: true as const, option: found.option };
+}
+
+/** Deleting keeps the option hidden in the store, so bookings that chose it still show what it was. */
+export async function removeOption(id: string) {
+  const store = await load();
+  const catalog = catalogOf(store);
+  const found = locate(catalog, id);
+  if (!found) return { ok: false as const, error: "Вариант не найден" };
+  const required = lastOffered(catalog, id);
+  if (required) return { ok: false as const, error: `В разделе «${required.title}» гостям должен остаться хотя бы один вариант` };
+  pinDefaults(store);
+  found.option.archived = true;
+  await persist(store);
+  return { ok: true as const };
+}
+
+/** Brings a deleted option back, hidden, so the manager can check it before guests see it again. */
+export async function restoreOption(id: string) {
+  const store = await load();
+  const option = catalogOf(store)
+    .flatMap((c) => c.options)
+    .find((o) => o.id === id && o.archived);
+  if (!option) return { ok: false as const, error: "Вариант не найден" };
+  pinDefaults(store);
+  delete option.archived;
+  option.hidden = true;
+  await persist(store);
+  return { ok: true as const, option };
+}
+
+/** How many upcoming, not cancelled banquets have each option chosen. */
+export async function optionUsage() {
+  const store = await load();
+  const today = toISODate(new Date());
+  const usage: Record<string, number> = {};
+  for (const b of store.bookings) {
+    if (b.hall === "restaurant" || b.date < today || !active(b) || !b.extras) continue;
+    for (const ids of Object.values(b.extras)) for (const id of ids ?? []) usage[id] = (usage[id] ?? 0) + 1;
+  }
+  return usage;
 }
 
 /* ------------------------------------------------------------------ users */

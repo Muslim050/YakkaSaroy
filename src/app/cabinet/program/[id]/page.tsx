@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ProgramPlanner } from "@/components/program/ProgramPlanner";
 import { requireClient } from "@/lib/auth";
-import { getBooking, toISODate } from "@/lib/store";
+import { getBooking, getCatalog, toISODate } from "@/lib/store";
 import { clientCanEdit, phoneDigits } from "@/lib/bookings";
 import { CONTACTS } from "@/lib/data";
 
@@ -25,6 +25,7 @@ async function Program({ params }: { params: PageProps<"/cabinet/program/[id]">[
   return (
     <ProgramPlanner
       booking={{ id: b.id, code: b.code, hall: b.hall, date: b.date, slot: b.slot, guests: b.guests, eventType: b.eventType, extras: b.extras }}
+      catalog={await getCatalog()}
       endpoint={`/api/cabinet/bookings/${b.id}`}
       editable={editable}
       lockedNote={`Программа уже согласована. Чтобы что-то поменять, позвоните менеджеру: ${CONTACTS.phone}.`}

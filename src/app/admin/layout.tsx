@@ -10,6 +10,7 @@ const NAV = [
   { href: "/admin/bookings", label: "Брони" },
   { href: "/admin/calendar", label: "Календарь" },
   { href: "/admin/clients", label: "Клиенты" },
+  { href: "/admin/catalog", label: "Каталог" },
 ];
 
 async function Account() {

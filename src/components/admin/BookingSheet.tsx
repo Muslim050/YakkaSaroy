@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Phone } from "lucide-react";
 import { EVENT_TYPES, HALLS } from "@/lib/data";
 import { estimateTotal, formatDateTime, formatDay, formatSum, hallName, slotLabel, type Booking, type BookingStatus } from "@/lib/bookings";
+import type { Catalog } from "@/lib/program";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { ProgramSummary } from "@/components/program/ProgramSummary";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -25,17 +26,27 @@ import { useToday } from "@/lib/availability";
 import { api, ErrorNote, Field, Section } from "./fields";
 
 /** Right-hand panel with everything about one booking; edits go straight to the API. */
-export function BookingSheet({ booking, onClose, onSaved }: { booking: Booking | null; onClose: () => void; onSaved?: (b: Booking) => void }) {
+export function BookingSheet({
+  booking,
+  catalog,
+  onClose,
+  onSaved,
+}: {
+  booking: Booking | null;
+  catalog: Catalog;
+  onClose: () => void;
+  onSaved?: (b: Booking) => void;
+}) {
   return (
     <Sheet open={!!booking} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-full gap-0 overflow-y-auto p-0 sm:max-w-lg">
-        {booking && <Body key={`${booking.id}-${booking.updatedAt}`} booking={booking} onSaved={onSaved} />}
+        {booking && <Body key={`${booking.id}-${booking.updatedAt}`} booking={booking} catalog={catalog} onSaved={onSaved} />}
       </SheetContent>
     </Sheet>
   );
 }
 
-function Body({ booking: b, onSaved }: { booking: Booking; onSaved?: (b: Booking) => void }) {
+function Body({ booking: b, catalog, onSaved }: { booking: Booking; catalog: Catalog; onSaved?: (b: Booking) => void }) {
   const router = useRouter();
   const today = useToday() || "0000-00-00";
   const isTable = b.hall === "restaurant";
@@ -60,7 +71,7 @@ function Body({ booking: b, onSaved }: { booking: Booking; onSaved?: (b: Booking
     setForm((f) => ({ ...f, [k]: e.target.value }));
     setSaved(false);
   };
-  const total = estimateTotal({ hall: b.hall, guests: Number(form.guests) || 0, extras: b.extras });
+  const total = estimateTotal({ hall: b.hall, guests: Number(form.guests) || 0, extras: b.extras }, catalog);
   const prepayment = Number(form.prepayment) || 0;
 
   const changes = () => {
@@ -163,7 +174,7 @@ function Body({ booking: b, onSaved }: { booking: Booking; onSaved?: (b: Booking
 
         {!isTable && (
           <Section title="Программа торжества">
-            <ProgramSummary extras={b.extras} href={`/admin/bookings/${b.id}/program`} cta="Открыть программу с фото и видео" />
+            <ProgramSummary catalog={catalog} extras={b.extras} href={`/admin/bookings/${b.id}/program`} cta="Открыть программу с фото и видео" />
           </Section>
         )}
 

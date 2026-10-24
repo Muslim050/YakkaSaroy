@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HALLS } from "@/lib/data";
 import { estimateTotal, formatDay, formatPhone, formatSum, hallName, slotLabel, type Booking, type BookingStatus } from "@/lib/bookings";
+import type { Catalog } from "@/lib/program";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -40,6 +41,7 @@ export function BookingsView({
   counts,
   query,
   focus,
+  catalog,
 }: {
   rows: Booking[];
   total: number;
@@ -48,6 +50,7 @@ export function BookingsView({
   counts: Counts;
   query: { kind: "halls" | "restaurant"; status: Filter; hall: string; q: string };
   focus: Booking | null;
+  catalog: Catalog;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -166,7 +169,7 @@ export function BookingsView({
           </TableHeader>
           <TableBody>
             {rows.map((b) => {
-              const t = estimateTotal(b);
+              const t = estimateTotal(b, catalog);
               return (
                 <TableRow
                   key={b.id}
@@ -227,7 +230,7 @@ export function BookingsView({
         </div>
       </div>
 
-      <BookingSheet booking={open} onClose={() => setOpenId(null)} onSaved={setSaved} />
+      <BookingSheet booking={open} catalog={catalog} onClose={() => setOpenId(null)} onSaved={setSaved} />
       <NewBookingSheet preset={creating} onClose={() => setCreating(null)} />
     </div>
   );
