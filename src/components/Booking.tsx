@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EVENT_TYPES, HALLS, RESTAURANT_HOURS, SLOTS, type HallId, type SlotId } from "@/lib/data";
 import { formatDate, fromISO, invalidateAvailability, monthKeyOf, useMonthAvailability, useToday } from "@/lib/availability";
@@ -140,6 +141,13 @@ export function Booking() {
                 <p className="mt-2 font-display text-4xl">Номер брони {status.code}</p>
                 <p className="mt-4 leading-relaxed text-ivory/75">
                   {hallDef.name}, {formatDate(date)}, {slotLabel(hall, slot)}. Менеджер позвонит на {form.phone} в течение часа, чтобы подтвердить детали.
+                </p>
+                <p className="mt-4 leading-relaxed text-ivory/75">
+                  Следите за бронью в{" "}
+                  <Link href="/login" className="text-gold-2 underline underline-offset-4 hover:text-ivory">
+                    личном кабинете
+                  </Link>
+                  : войдите по номеру телефона и номеру брони {status.code}.
                 </p>
                 <button
                   type="button"

@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Phone } from "lucide-react";
+import Link from "next/link";
+import { Phone, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CONTACTS } from "@/lib/data";
+import { Monogram } from "./Monogram";
 
 const NAV = [
   { id: "halls", label: "Залы" },
@@ -104,6 +106,13 @@ export function Header() {
             <Phone className="size-4 text-gold" />
             <span className="hidden whitespace-nowrap xl:inline">{CONTACTS.phone}</span>
           </a>
+          <Link
+            href="/login"
+            aria-label="Личный кабинет"
+            className="hidden size-10 items-center justify-center rounded-full border border-gold/40 text-ivory/85 transition hover:border-gold hover:text-gold-2 md:flex"
+          >
+            <UserRound className="size-4 text-gold" />
+          </Link>
           <a
             href="#booking"
             className="hidden whitespace-nowrap rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-night transition-colors hover:bg-gold-2 sm:block"
@@ -150,6 +159,9 @@ export function Header() {
             <a href="#booking" onClick={() => setOpen(false)} className="rounded-full bg-gold px-5 py-2.5 text-sm font-semibold text-night">
               Забронировать
             </a>
+            <Link href="/login" className="flex items-center gap-2 rounded-full border border-gold/40 px-4 py-2.5 text-sm text-ivory">
+              <UserRound className="size-4 text-gold" /> Личный кабинет
+            </Link>
           </div>
         </nav>
       )}
@@ -157,10 +169,4 @@ export function Header() {
   );
 }
 
-export function Monogram({ className = "h-9 w-9" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-      <path d="M18 14l14 21 14-21M32 35v15M23 50h18" fill="none" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+export { Monogram } from "./Monogram";

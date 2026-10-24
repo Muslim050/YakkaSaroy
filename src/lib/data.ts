@@ -11,6 +11,8 @@ export const HALLS: {
   seats: string;
   capacity: string;
   guestsMax: number;
+  /** Banquet price per guest in sum; null for the restaurant (pay as you go). */
+  pricePerGuest: number | null;
   description: string;
   features: string[];
   image: string;
@@ -23,6 +25,7 @@ export const HALLS: {
     seats: "300–800",
     capacity: "от 300 до 800 гостей",
     guestsMax: 800,
+    pricePerGuest: 350_000,
     description:
       "Колонны, зеркальные стены и сцена со светом и звуком. Молодые выходят к гостям по красной дорожке, в углу играет оркестр.",
     features: ["Сцена и световое шоу", "Собственный оркестр", "Отдельный вход для молодожёнов", "Гардероб и зона фотосессии"],
@@ -36,6 +39,7 @@ export const HALLS: {
     seats: "80–250",
     capacity: "от 80 до 250 гостей",
     guestsMax: 250,
+    pricePerGuest: 300_000,
     description:
       "Тёплый свет люстр и круглые столы на десять человек. Зал небольшой, гости видят и слышат друг друга.",
     features: ["Круглые столы на 10 персон", "Экран для видеопоздравлений", "Отдельная детская зона", "Собственный бар"],
@@ -49,6 +53,7 @@ export const HALLS: {
     seats: "40–150",
     capacity: "от 40 до 150 гостей",
     guestsMax: 150,
+    pricePerGuest: 250_000,
     description:
       "Сад с фонтаном, гирлянды над столами и вид на подсвеченный фасад. В прохладные вечера включаем обогреватели.",
     features: ["Фонтан и вечерняя подсветка", "Живая музыка", "Обогреватели и навес", "Мангал-меню"],
@@ -62,6 +67,7 @@ export const HALLS: {
     seats: "2–12",
     capacity: "столики на 2–12 персон",
     guestsMax: 12,
+    pricePerGuest: null,
     description:
       "Плов, кебабы на углях и десерты каждый день. Столик бронируется на конкретный час, приходите без очереди.",
     features: ["Открыт ежедневно с 12:00 до 23:00", "Детское меню", "Кальянная зона", "Парковка"],
