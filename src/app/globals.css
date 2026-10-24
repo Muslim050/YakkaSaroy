@@ -111,6 +111,30 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Workspace (admin and client cabinet): light surfaces under a night top bar.
+   :has() also reaches popovers, menus and sheets that are portalled to <body>. */
+:root:has([data-theme="light"]) {
+  --background: #f7f3ec;
+  --foreground: #17202e;
+  --card: #fffdf9;
+  --card-foreground: #17202e;
+  --popover: #fffdf9;
+  --popover-foreground: #17202e;
+  --primary: #0d1828;
+  --primary-foreground: #f7f3ec;
+  --secondary: #ece5d8;
+  --secondary-foreground: #17202e;
+  --muted: #ece5d8;
+  --muted-foreground: #6b6a63;
+  --accent: #efe8da;
+  --accent-foreground: #17202e;
+  --destructive: #b3262e;
+  --border: rgba(23, 32, 46, 0.12);
+  --input: rgba(23, 32, 46, 0.2);
+  --ring: #c4a36b;
+}
+:root:has([data-theme="light"]) body { background: var(--ivory); }
+
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 88px;
