@@ -1,8 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { adminOrNull } from "@/lib/auth";
 import { getBooking, getCatalog, isFree, SlotTakenError, updateBooking, type BookingPatch } from "@/lib/store";
-import { checkGuests, isEventType, isStatus } from "@/lib/validate";
+import { checkGuests, checkSlot, isEventType, isStatus } from "@/lib/validate";
+import { todayISO } from "@/lib/time";
 import { normalizeSelection } from "@/lib/program";
+import { hallName } from "@/lib/bookings";
+import { HALLS, type HallId } from "@/lib/data";
 
 export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/admin/bookings/[id]">) {
   if (!(await adminOrNull())) return NextResponse.json({ error: "Войдите как администратор" }, { status: 401 });
@@ -20,8 +23,22 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/admin/
       return NextResponse.json({ error: "Это время уже заняли, восстановить бронь нельзя" }, { status: 409 });
     patch.status = body.status;
   }
+  // Moving a banquet to another hall, date or time, e.g. by dragging it on the calendar.
+  if (body.hall !== undefined || body.date !== undefined || body.slot !== undefined) {
+    const to = { hall: String(body.hall ?? booking.hall), date: String(body.date ?? booking.date), slot: String(body.slot ?? booking.slot) };
+    if (booking.hall === "restaurant" || to.hall === "restaurant") return NextResponse.json({ error: "Столик в ресторане так не переносится" }, { status: 400 });
+    if (booking.status === "cancelled" || booking.status === "done") return NextResponse.json({ error: "Отменённую или проведённую бронь перенести нельзя" }, { status: 400 });
+    const err = checkSlot(to.hall, to.date, to.slot);
+    if (err) return NextResponse.json({ error: err }, { status: 400 });
+    if (to.date < todayISO()) return NextResponse.json({ error: "Перенести можно только на сегодня или позже" }, { status: 400 });
+    const hall = to.hall as HallId;
+    const max = HALLS.find((h) => h.id === hall)?.guestsMax ?? 0;
+    if (Number(body.guests ?? booking.guests) > max) return NextResponse.json({ error: `${hallName(hall)} вмещает до ${max} гостей` }, { status: 400 });
+    if (!(await isFree(hall, to.date, to.slot, booking.id))) return NextResponse.json({ error: "Это время уже занято" }, { status: 409 });
+    Object.assign(patch, { hall, date: to.date, slot: to.slot });
+  }
   if (body.guests !== undefined) {
-    const err = checkGuests(booking.hall, Number(body.guests));
+    const err = checkGuests(patch.hall ?? booking.hall, Number(body.guests));
     if (err) return NextResponse.json({ error: err }, { status: 400 });
     patch.guests = Number(body.guests);
   }
@@ -63,7 +80,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/admin/
   try {
     updated = await updateBooking(id, patch, "admin");
   } catch (e) {
-    if (e instanceof SlotTakenError) return NextResponse.json({ error: "Это время уже заняли, восстановить бронь нельзя" }, { status: 409 });
+    if (e instanceof SlotTakenError)
+      return NextResponse.json({ error: patch.date ? "Это время только что заняли" : "Это время уже заняли, восстановить бронь нельзя" }, { status: 409 });
     throw e;
   }
   return NextResponse.json({ booking: updated });

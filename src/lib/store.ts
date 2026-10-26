@@ -8,7 +8,7 @@ import { HALLS, RESTAURANT_HOURS, RESTAURANT_TABLES, SLOTS, type HallId, type Sl
 import type { DayAvailability } from "./availability";
 import { describeChange, offered, type Catalog, type CategoryId, type ProgramOption, type ProgramSelection } from "./program";
 import { programCategories, seedCatalog } from "./programSeed";
-import { STATUS, estimateTotal, formatSum, phoneDigits, type Booking, type BookingStatus, type HistoryEntry } from "./bookings";
+import { STATUS, estimateTotal, formatDay, formatSum, hallName, phoneDigits, slotLabel, type Booking, type BookingStatus, type HistoryEntry } from "./bookings";
 import { checkPassword, hashPassword } from "./password";
 import { addDaysISO, todayISO } from "./time";
 
@@ -165,13 +165,15 @@ export async function getBooking(id: string) {
   return r ? toBooking(r) : null;
 }
 
-export type BookingPatch = Partial<Pick<Booking, "status" | "guests" | "eventType" | "comment" | "prepayment" | "tastingAt" | "managerNote" | "name" | "phone">> & {
+export type BookingPatch = Partial<
+  Pick<Booking, "status" | "guests" | "eventType" | "comment" | "prepayment" | "tastingAt" | "managerNote" | "name" | "phone" | "hall" | "date" | "slot">
+> & {
   extras?: ProgramSelection;
 };
 
 /**
  * Apply a change and append a readable line to the booking's history. Throws
- * SlotTakenError if re-opening a cancelled banquet would double-book its slot.
+ * SlotTakenError if moving a banquet or re-opening a cancelled one would double-book a slot.
  */
 export async function updateBooking(id: string, patch: BookingPatch, by: "client" | "admin") {
   const b = await getBooking(id);
@@ -184,6 +186,12 @@ export async function updateBooking(id: string, patch: BookingPatch, by: "client
   if (patch.status && patch.status !== b.status) {
     log(patch.status === "cancelled" && by === "client" ? "Клиент отменил заявку" : `Статус: ${STATUS[patch.status].label.toLowerCase()}`);
     set.status = patch.status;
+  }
+  const to = { hall: patch.hall ?? b.hall, date: patch.date ?? b.date, slot: patch.slot ?? b.slot };
+  if (to.hall !== b.hall || to.date !== b.date || to.slot !== b.slot) {
+    const where = (x: typeof to) => `${hallName(x.hall)}, ${formatDay(x.date)}, ${slotLabel(x.hall, x.slot)}`;
+    log(`Перенесено: ${where(b)} → ${where(to)}`);
+    Object.assign(set, to);
   }
   if (patch.guests !== undefined && patch.guests !== b.guests) {
     log(`Гостей: ${b.guests} → ${patch.guests}`);
