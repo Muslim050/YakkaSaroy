@@ -4,7 +4,7 @@ import { ArrowUpRight, Phone } from "lucide-react";
 import { PageHeader } from "@/components/app/AppShell";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { requireAdmin } from "@/lib/auth";
-import { overview, toISODate } from "@/lib/store";
+import { overview, todayISO } from "@/lib/store";
 import { formatDateTime, formatDay, formatPhone, formatSumShort, hallName, slotLabel, type Booking } from "@/lib/bookings";
 
 export default function AdminHome() {
@@ -20,7 +20,7 @@ const open = (b: Booking) => `/admin/bookings?status=all&open=${b.id}`;
 async function Overview() {
   await requireAdmin();
   const o = await overview();
-  const today = toISODate(new Date());
+  const today = todayISO();
 
   // group the week's events by day
   const byDay = new Map<string, Booking[]>();

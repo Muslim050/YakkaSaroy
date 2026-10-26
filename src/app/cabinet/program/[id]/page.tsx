@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ProgramPlanner } from "@/components/program/ProgramPlanner";
 import { requireClient } from "@/lib/auth";
-import { getBooking, getCatalog, toISODate } from "@/lib/store";
+import { getBooking, getCatalog, todayISO } from "@/lib/store";
 import { clientCanEdit, phoneDigits } from "@/lib/bookings";
 import { CONTACTS } from "@/lib/data";
 
@@ -20,7 +20,7 @@ async function Program({ params }: { params: PageProps<"/cabinet/program/[id]">[
   const b = await getBooking(id);
   // Someone else's booking looks exactly like a missing one.
   if (!b || phoneDigits(b.phone) !== me.phone || b.hall === "restaurant") notFound();
-  const editable = clientCanEdit(b) && b.date >= toISODate(new Date());
+  const editable = clientCanEdit(b) && b.date >= todayISO();
 
   return (
     <ProgramPlanner
