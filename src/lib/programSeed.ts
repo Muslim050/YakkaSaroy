@@ -187,6 +187,12 @@ const SEED: SeedCategory[] = [
   },
 ];
 
+/** Category titles and rules; these stay in code, only the options live in the database. */
+export function programCategories(): Omit<ProgramCategory, "options">[] {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return SEED.map(({ options, ...c }) => ({ ...c }));
+}
+
 /** Options keep their written order, spaced by ten so a new one fits in between. */
 export function seedCatalog(): Catalog {
   return structuredClone(SEED).map((c) => ({ ...c, options: c.options.map((o, i) => ({ ...o, order: (i + 1) * 10 })) }));

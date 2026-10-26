@@ -39,5 +39,6 @@ export async function POST(request: NextRequest) {
     },
     "admin",
   );
+  if (!booking) return NextResponse.json({ error: "Это время уже занято" }, { status: 409 });
   return NextResponse.json({ booking }, { status: 201 });
 }

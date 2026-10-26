@@ -4,7 +4,7 @@ import { Phone } from "lucide-react";
 import { PageHeader } from "@/components/app/AppShell";
 import { BookingCard } from "@/components/cabinet/BookingCard";
 import { requireClient } from "@/lib/auth";
-import { bookingsByPhone, getCatalog, toISODate } from "@/lib/store";
+import { bookingsByPhone, getCatalog, todayISO } from "@/lib/store";
 import { toClientView } from "@/lib/bookings";
 import { CONTACTS } from "@/lib/data";
 
@@ -18,7 +18,7 @@ export default function CabinetPage() {
 
 async function Cabinet() {
   const me = await requireClient();
-  const today = toISODate(new Date());
+  const today = todayISO();
   const [all, catalog] = await Promise.all([bookingsByPhone(me.phone).then((list) => list.map(toClientView)), getCatalog()]);
   const upcoming = all.filter((b) => b.date >= today && b.status !== "cancelled").sort((a, b) => a.date.localeCompare(b.date));
   const past = all.filter((b) => !(b.date >= today && b.status !== "cancelled"));

@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/app/AppShell";
 import { CalendarBoard } from "@/components/admin/CalendarBoard";
 import { requireAdmin } from "@/lib/auth";
-import { getCatalog, hallBookingsForMonth, toISODate } from "@/lib/store";
+import { getCatalog, hallBookingsForMonth, todayISO } from "@/lib/store";
 import { STATUS, STATUS_ORDER } from "@/lib/bookings";
 
 const MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
@@ -21,7 +21,7 @@ async function Board({ searchParams }: { searchParams: PageProps<"/admin/calenda
   await requireAdmin();
   const sp = await searchParams;
   const now = new Date();
-  const today = toISODate(now);
+  const today = todayISO(now);
   const raw = typeof sp.month === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(sp.month) ? sp.month : today.slice(0, 7);
   const [y, m] = raw.split("-").map(Number);
   const count = new Date(y, m, 0).getDate();

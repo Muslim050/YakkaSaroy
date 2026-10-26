@@ -1,20 +1,36 @@
 import "server-only";
+import { and, eq, gt, gte, sql } from "drizzle-orm";
+import { getDb } from "@/db";
+import { loginAttempts } from "@/db/schema";
 
-/** Tiny in-memory limiter for login attempts: `limit` failures per `windowMs` per key. */
-const hits = new Map<string, { n: number; until: number }>();
+/**
+ * Login attempt limiter: `limit` failures per key within a 15 minute window. Kept in
+ * Postgres so every serverless instance sees the same count.
+ */
+const WINDOW = "15 minutes";
 
-export function tooManyAttempts(key: string, limit = 5) {
-  const h = hits.get(key);
-  return !!h && h.until > Date.now() && h.n >= limit;
+export async function tooManyAttempts(key: string, limit = 5) {
+  const [row] = await getDb()
+    .select({ n: loginAttempts.count })
+    .from(loginAttempts)
+    .where(and(eq(loginAttempts.key, key), gt(loginAttempts.until, sql`now()`), gte(loginAttempts.count, limit)))
+    .limit(1);
+  return !!row;
 }
 
-export function recordFailure(key: string, windowMs = 15 * 60_000) {
-  const now = Date.now();
-  const h = hits.get(key);
-  if (!h || h.until < now) hits.set(key, { n: 1, until: now + windowMs });
-  else h.n++;
+export async function recordFailure(key: string) {
+  await getDb()
+    .insert(loginAttempts)
+    .values({ key, count: 1, until: sql`now() + ${WINDOW}::interval` })
+    .onConflictDoUpdate({
+      target: loginAttempts.key,
+      set: {
+        count: sql`case when ${loginAttempts.until} < now() then 1 else ${loginAttempts.count} + 1 end`,
+        until: sql`case when ${loginAttempts.until} < now() then now() + ${WINDOW}::interval else ${loginAttempts.until} end`,
+      },
+    });
 }
 
-export function clearFailures(key: string) {
-  hits.delete(key);
+export async function clearFailures(key: string) {
+  await getDb().delete(loginAttempts).where(eq(loginAttempts.key, key));
 }

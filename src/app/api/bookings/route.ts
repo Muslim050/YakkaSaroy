@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { HALLS, RESTAURANT_HOURS, SLOTS, type HallId } from "@/lib/data";
-import { createBooking, isFree, toISODate } from "@/lib/store";
+import { createBooking, isFree, todayISO } from "@/lib/store";
 
 export async function POST(request: NextRequest) {
   let body: Record<string, unknown>;
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   const hallDef = HALLS.find((h) => h.id === hall);
   if (!hallDef) return NextResponse.json({ error: "Выберите зал" }, { status: 400 });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return NextResponse.json({ error: "Выберите дату" }, { status: 400 });
-  const today = toISODate(new Date());
+  const today = todayISO();
   if (date < today) return NextResponse.json({ error: "Эта дата уже прошла" }, { status: 400 });
 
   const validSlot = hall === "restaurant" ? RESTAURANT_HOURS.includes(slot) : SLOTS.some((s) => s.id === slot);
@@ -39,5 +39,6 @@ export async function POST(request: NextRequest) {
   }
 
   const booking = await createBooking({ hall, date, slot, guests, name, phone, eventType, comment });
+  if (!booking) return NextResponse.json({ error: "Это время только что заняли. Выберите другое." }, { status: 409 });
   return NextResponse.json({ ok: true, code: booking.code, booking: { hall, date, slot, guests, name } }, { status: 201 });
 }

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { adminOrNull } from "@/lib/auth";
-import { getBooking, getCatalog, isFree, updateBooking, type BookingPatch } from "@/lib/store";
+import { getBooking, getCatalog, isFree, SlotTakenError, updateBooking, type BookingPatch } from "@/lib/store";
 import { checkGuests, isEventType, isStatus } from "@/lib/validate";
 import { normalizeSelection } from "@/lib/program";
 
@@ -59,6 +59,12 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/admin/
     patch.extras = sel.value;
   }
 
-  const updated = await updateBooking(id, patch, "admin");
+  let updated;
+  try {
+    updated = await updateBooking(id, patch, "admin");
+  } catch (e) {
+    if (e instanceof SlotTakenError) return NextResponse.json({ error: "Это время уже заняли, восстановить бронь нельзя" }, { status: 409 });
+    throw e;
+  }
   return NextResponse.json({ booking: updated });
 }
