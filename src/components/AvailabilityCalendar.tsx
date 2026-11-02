@@ -6,6 +6,7 @@ import { getDefaultClassNames, type DayButton } from "react-day-picker";
 import { ru } from "react-day-picker/locale";
 import { cn } from "@/lib/utils";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
+import { Loader } from "@/components/app/Loader";
 import { dayState, fromISO, toISO, type DayState, type MonthAvailability } from "@/lib/availability";
 import type { HallId } from "@/lib/data";
 
@@ -18,6 +19,8 @@ type Props = {
   selected?: string;
   onSelect: (iso: string) => void;
   size?: "sm" | "lg";
+  /** "dark" for the night-blue site sections, "light" for the admin pages. */
+  tone?: "dark" | "light";
   /** Let people pick a fully booked day (the hero then suggests the nearest free dates). */
   allowFull?: boolean;
   className?: string;
@@ -35,7 +38,7 @@ const DOT: Record<DayState, string> = {
  * shadcn Calendar that knows which days are free for a hall.
  * Each day gets a status dot; past and fully booked days are disabled.
  */
-export function AvailabilityCalendar({ hall, days, today, month, onMonthChange, selected, onSelect, size = "sm", allowFull = false, className }: Props) {
+export function AvailabilityCalendar({ hall, days, today, month, onMonthChange, selected, onSelect, size = "sm", tone = "dark", allowFull = false, className }: Props) {
   const states = useMemo(() => {
     const map: Record<string, DayState> = {};
     if (!days || !today) return map;
@@ -48,10 +51,11 @@ export function AvailabilityCalendar({ hall, days, today, month, onMonthChange, 
   const endMonth = todayDate ? new Date(todayDate.getFullYear(), todayDate.getMonth() + 11, 1) : undefined;
   const defaults = getDefaultClassNames();
   const lg = size === "lg";
+  const dark = tone === "dark";
 
   // DayPicker reads the current date while rendering, so it only renders in the browser.
   if (!today || !todayDate) {
-    return <div aria-hidden="true" className={cn("animate-pulse rounded-2xl bg-ivory/5", lg ? "aspect-[7/6] w-full" : "h-80 w-72", className)} />;
+    return <Loader size="box" tone={dark ? "dark" : "light"} className={cn("rounded-2xl", dark ? "bg-ivory/5" : "bg-secondary/40", lg ? "aspect-[7/6] w-full" : "h-80 w-72", className)} />;
   }
 
   return (
@@ -87,10 +91,10 @@ export function AvailabilityCalendar({ hall, days, today, month, onMonthChange, 
         root: cn(lg ? "w-full" : "w-fit", defaults.root),
         month_caption: cn("flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)", defaults.month_caption),
         caption_label: cn("font-display capitalize select-none", lg ? "text-3xl sm:text-4xl" : "text-2xl", defaults.caption_label),
-        weekday: cn("flex-1 text-xs font-normal text-ivory/45 select-none", defaults.weekday),
+        weekday: cn("flex-1 text-xs font-normal select-none", dark ? "text-ivory/45" : "text-muted-foreground", defaults.weekday),
         week: cn(lg ? "mt-1.5" : "mt-1", "flex w-full", defaults.week),
         today: cn("rounded-(--cell-radius) ring-1 ring-inset ring-gold/40", defaults.today),
-        disabled: cn("text-ivory/25", defaults.disabled),
+        disabled: cn(dark ? "text-ivory/25" : "text-muted-foreground/40", defaults.disabled),
       }}
       components={{ DayButton: (p) => <StatusDayButton {...p} states={states} /> }}
     />
@@ -115,10 +119,10 @@ function StatusDayButton({ states, children, className, ...props }: React.Compon
   );
 }
 
-export function CalendarLegend({ hall, className }: { hall: HallId; className?: string }) {
+export function CalendarLegend({ hall, tone = "dark", className }: { hall: HallId; tone?: "dark" | "light"; className?: string }) {
   const r = hall === "restaurant";
   return (
-    <div className={cn("flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-ivory/60", className)}>
+    <div className={cn("flex flex-wrap gap-x-5 gap-y-1.5 text-xs", tone === "dark" ? "text-ivory/60" : "text-muted-foreground", className)}>
       <span className="flex items-center gap-2"><i className="size-2 rounded-full bg-gold" />{r ? "много столиков" : "день и вечер свободны"}</span>
       <span className="flex items-center gap-2"><i className="size-2 rounded-full bg-gold/45" />{r ? "осталось мало" : "свободно одно время"}</span>
       <span className="flex items-center gap-2"><i className="size-2 rounded-full bg-wine" />всё занято</span>
