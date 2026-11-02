@@ -1,13 +1,17 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 /** Small building blocks shared by the admin sheets. */
-export function Section({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
+export function Section({ title, icon: Icon, children, className }: { title: string; icon?: LucideIcon; children: React.ReactNode; className?: string }) {
   return (
     <section className={cn("grid gap-4 border-b border-border px-6 py-5", className)}>
-      <h3 className="text-xs font-medium text-muted-foreground">{title}</h3>
+      <h3 className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] text-muted-foreground uppercase">
+        {Icon && <Icon className="size-3.5 text-gold-dim" />}
+        {title}
+      </h3>
       {children}
     </section>
   );
