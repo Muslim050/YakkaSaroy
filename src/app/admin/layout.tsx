@@ -8,7 +8,6 @@ export const metadata: Metadata = { title: "Админка — Yakka Saroy" };
 const NAV = [
   { href: "/admin", label: "Обзор" },
   { href: "/admin/bookings", label: "Брони" },
-  { href: "/admin/calendar", label: "Календарь" },
   { href: "/admin/clients", label: "Клиенты" },
   { href: "/admin/catalog", label: "Каталог" },
 ];
