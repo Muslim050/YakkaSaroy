@@ -10,7 +10,7 @@ const golos = Golos_Text({ variable: "--font-golos", subsets: ["latin", "cyrilli
 export const metadata: Metadata = {
   title: "Yakka Saroy — банкетный зал и ресторан в Ташкенте",
   description:
-    "Yakka Saroy в Яккасарайском районе Ташкента: банкетные залы на 40–800 гостей и ресторан. Проверьте свободные даты и оставьте заявку онлайн.",
+    "Yakka Saroy в Яккасарайском районе Ташкента: банкетные залы на 20–800 гостей и ресторан. Проверьте свободные даты и оставьте заявку онлайн.",
   openGraph: {
     title: "Yakka Saroy — дворец торжеств",
     description: "Свадьбы, никох, юбилеи и ужины. Свободные даты онлайн.",
