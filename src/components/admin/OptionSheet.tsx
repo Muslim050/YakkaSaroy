@@ -5,8 +5,9 @@ import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatSum } from "@/lib/bookings";
+import { EVENT_TYPES } from "@/lib/data";
 import type { Media, Price, ProgramCategory, ProgramOption } from "@/lib/program";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,11 +35,11 @@ const PRICE_ITEMS: Record<Price["type"], string> = {
 /** Create or edit one program option: texts, price, order, visibility, photos and videos. */
 export function OptionSheet({ target, usage, uploads, onClose }: { target: OptionTarget | null; usage: Record<string, number>; uploads: boolean; onClose: () => void }) {
   return (
-    <Sheet open={!!target} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full gap-0 overflow-y-auto p-0 sm:max-w-xl">
+    <Modal open={!!target} onOpenChange={(o) => !o && onClose()}>
+      <ModalContent className="w-full gap-0 overflow-y-auto p-0 sm:max-w-xl">
         {target && <Body key={target.option?.id ?? `new-${target.category.id}`} target={target} usage={usage} uploads={uploads} onDone={onClose} />}
-      </SheetContent>
-    </Sheet>
+      </ModalContent>
+    </Modal>
   );
 }
 
@@ -52,6 +53,7 @@ function Body({ target: { category, option, nextOrder }, usage, uploads, onDone 
     order: String(option?.order ?? nextOrder),
     hidden: option?.hidden ?? false,
   });
+  const [eventTypes, setEventTypes] = useState<string[]>(option?.eventTypes ?? []);
   const [includes, setIncludes] = useState<string[]>(option?.includes.length ? option.includes : [""]);
   const [media, setMedia] = useState<Media[]>(option?.media ?? []);
   const [uploading, setUploading] = useState(false);
@@ -74,6 +76,7 @@ function Body({ target: { category, option, nextOrder }, usage, uploads, onDone 
       price,
       order: Number(form.order) || 0,
       hidden: form.hidden,
+      eventTypes,
       media: media.map((m) => ({ ...m, alt: m.alt.trim() })),
     };
     setBusy(true);
@@ -102,13 +105,13 @@ function Body({ target: { category, option, nextOrder }, usage, uploads, onDone 
 
   return (
     <>
-      <SheetHeader className="border-b border-border px-6 py-5">
-        <SheetTitle className="font-display text-2xl font-normal text-night">{option ? option.title : "Новый вариант"}</SheetTitle>
-        <SheetDescription>
+      <ModalHeader className="border-b border-border px-6 py-5">
+        <ModalTitle className="font-display text-2xl font-normal text-night">{option ? option.title : "Новый вариант"}</ModalTitle>
+        <ModalDescription>
           {category.title}. {category.pick === "one" ? "Гость выбирает один вариант из раздела." : "Гость может выбрать несколько вариантов."}
           {used > 0 && ` Выбран в ${used} ${used === 1 ? "предстоящей брони" : "предстоящих бронях"}.`}
-        </SheetDescription>
-      </SheetHeader>
+        </ModalDescription>
+      </ModalHeader>
 
       <form onSubmit={submit} className="flex flex-1 flex-col">
         <Section title="Что видит гость">
@@ -179,6 +182,27 @@ function Body({ target: { category, option, nextOrder }, usage, uploads, onDone 
           </div>
         </Section>
 
+        <Section title="Поводы">
+          <Field label="Для каких торжеств предлагать" hint="Ничего не отмечено — вариант предлагается для любого повода.">
+              <div className="flex flex-wrap gap-1.5">
+                {EVENT_TYPES.map((t) => {
+                  const on = eventTypes.includes(t);
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setEventTypes((list) => (on ? list.filter((x) => x !== t) : [...list, t]))}
+                      className={cn("h-8 rounded-full border px-3 text-sm transition-colors", on ? "border-night bg-night text-ivory" : "border-border bg-card text-ink/80 hover:border-gold")}
+                    >
+                      {t}
+                    </button>
+                  );
+                })}
+              </div>
+          </Field>
+        </Section>
+
         <Section title="Показ" className="border-b-0">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="op-order" label="Порядок" hint="Меньше — выше в разделе.">
@@ -213,7 +237,7 @@ function Body({ target: { category, option, nextOrder }, usage, uploads, onDone 
             <button
               type="submit"
               disabled={busy || uploading}
-              className="ml-auto h-10 min-w-40 rounded-lg bg-night px-4 text-sm font-medium text-ivory transition-colors hover:bg-night-3 disabled:opacity-60"
+              className="ml-auto h-10 min-w-40 rounded-lg brand-action px-4 text-sm font-medium disabled:opacity-60"
             >
               {uploading ? "Дождитесь загрузки" : busy ? "Сохраняем" : option ? "Сохранить" : "Добавить вариант"}
             </button>
