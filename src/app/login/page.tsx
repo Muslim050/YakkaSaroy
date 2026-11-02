@@ -16,20 +16,17 @@ async function SignedInRedirect() {
 
 export default function LoginPage() {
   return (
-    <div className="grid min-h-[100svh] bg-[#f8f5ef] lg:grid-cols-[59.5fr_40.5fr]">
+    <div className="grid min-h-[100svh] bg-[#f6f2e9] lg:grid-cols-[59.5fr_40.5fr]">
       <Suspense fallback={null}>
         <SignedInRedirect />
       </Suspense>
 
       <aside aria-label="Банкетный зал" className="relative hidden overflow-hidden bg-[#d9c4a5] lg:block">
-        <div className="absolute inset-0 bg-[url('/login-hall-concept.png')] bg-[length:168%_100%] bg-left bg-no-repeat" />
+        <div className="absolute inset-0 bg-[url('/login-hall-evening.avif')] bg-cover bg-center bg-no-repeat" />
       </aside>
 
-      <main data-theme="light" className="relative flex min-h-[100svh] flex-col overflow-hidden bg-[#f8f5ef] px-6 py-10 sm:px-12 lg:px-[10%]">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 hidden w-[clamp(28px,5vh,50px)] opacity-70 mix-blend-multiply [mask-image:linear-gradient(to_bottom,black_0%,black_45%,transparent_85%)] sm:block">
-          <div className="h-full w-full bg-[url('/login-hall-concept.png')] bg-[length:auto_100%] bg-right bg-no-repeat [mask-image:linear-gradient(to_right,transparent,black_30%)]" />
-        </div>
-        <div aria-hidden="true" className="pointer-events-none absolute -top-px right-[clamp(28px,5vh,50px)] hidden h-full w-40 rounded-tr-[8rem] border-t border-r border-[#c9a66e]/40 sm:block" />
+      <main data-theme="light" className="relative flex min-h-[100svh] flex-col overflow-hidden bg-[#f6f2e9] px-6 py-10 sm:px-12 lg:px-[10%]">
+        <div aria-hidden="true" className="pointer-events-none absolute right-0 top-0 hidden h-[min(55vh,520px)] w-[min(32%,200px)] bg-[url('/login-floral-extracted.svg?v=2')] bg-contain bg-right-top bg-no-repeat sm:block" />
         <div className="relative mx-auto my-auto w-full max-w-[400px] py-8">
           <Link href="/" aria-label="Yakka Saroy — на главную" className="mx-auto mb-12 flex w-fit flex-col items-center text-night sm:mb-16">
             <Monogram className="h-16 w-14 sm:h-20 sm:w-16" />
