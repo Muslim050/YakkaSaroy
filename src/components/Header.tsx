@@ -108,14 +108,15 @@ export function Header() {
           </a>
           <Link
             href="/login"
-            aria-label="Личный кабинет"
+            aria-label="Вход для сотрудников"
+            title="Вход для сотрудников"
             className="hidden size-10 items-center justify-center rounded-full border border-gold/40 text-ivory/85 transition hover:border-gold hover:text-gold-2 md:flex"
           >
             <UserRound className="size-4 text-gold" />
           </Link>
           <a
             href="#booking"
-            className="hidden whitespace-nowrap rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-night transition-colors hover:bg-gold-2 sm:block"
+            className="hidden whitespace-nowrap rounded-full brand-action px-5 py-2.5 text-sm font-medium sm:block"
           >
             Забронировать
           </a>
@@ -156,11 +157,11 @@ export function Header() {
             <a href={CONTACTS.phoneHref} className="flex items-center gap-2 rounded-full border border-gold/40 px-4 py-2.5 text-sm text-ivory">
               <Phone className="size-4 text-gold" /> {CONTACTS.phone}
             </a>
-            <a href="#booking" onClick={() => setOpen(false)} className="rounded-full bg-gold px-5 py-2.5 text-sm font-semibold text-night">
+            <a href="#booking" onClick={() => setOpen(false)} className="rounded-full brand-action px-5 py-2.5 text-sm font-semibold">
               Забронировать
             </a>
             <Link href="/login" className="flex items-center gap-2 rounded-full border border-gold/40 px-4 py-2.5 text-sm text-ivory">
-              <UserRound className="size-4 text-gold" /> Личный кабинет
+              <UserRound className="size-4 text-gold" /> Для сотрудников
             </Link>
           </div>
         </nav>

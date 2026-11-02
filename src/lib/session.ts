@@ -7,9 +7,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * Signed cookie session. The payload is readable (base64url JSON) but cannot
  * be altered without AUTH_SECRET; it holds only the role, an id and a name.
  */
-export type Session =
-  | { role: "admin"; sub: string; name: string; exp: number }
-  | { role: "client"; sub: string; name: string; exp: number }; // client sub = phone digits
+export type Session = { role: "admin"; sub: string; name: string; exp: number };
 
 const COOKIE = "ys_session";
 const MAX_AGE = 60 * 60 * 24 * 7; // a week
@@ -40,7 +38,7 @@ export function decodeSession(token: string | undefined): Session | null {
   try {
     const data = JSON.parse(Buffer.from(payload, "base64url").toString()) as Session;
     if (!data.exp || data.exp < Date.now() / 1000) return null;
-    if (data.role !== "admin" && data.role !== "client") return null;
+    if (data.role !== "admin") return null;
     return data;
   } catch {
     return null;

@@ -18,7 +18,7 @@ export function NavLinksFallback({ items, className }: { items: NavItem[]; class
 }
 
 function NavList({ items, className, pathname }: { items: NavItem[]; className?: string; pathname: string }) {
-  const isActive = (href: string) => (href === "/admin" || href === "/cabinet" ? pathname === href : !!pathname && pathname.startsWith(href));
+  const isActive = (href: string) => (href === "/admin" ? pathname === href : !!pathname && pathname.startsWith(href));
   return (
     <nav className={cn("flex items-stretch", className)} aria-label="Разделы">
       {items.map((item) => {

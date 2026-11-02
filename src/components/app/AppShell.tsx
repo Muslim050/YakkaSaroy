@@ -4,7 +4,7 @@ import { Monogram } from "@/components/Monogram";
 import { NavLinks, NavLinksFallback, type NavItem } from "./NavLinks";
 
 /**
- * Workspace frame for the admin and the client cabinet: a night top bar with the
+ * Workspace frame for the admin: a night top bar with the
  * sections in a row, light pages underneath. The account slot reads the session,
  * so it streams in behind its own Suspense boundary.
  */
@@ -43,7 +43,7 @@ export function AppShell({
             <Link href="/" className="hidden rounded-full px-3 py-2 text-sm text-ivory/55 transition-colors hover:text-ivory sm:block">
               На сайт
             </Link>
-            <Suspense fallback={<div className="h-10 w-10 animate-pulse rounded-full bg-white/10 lg:w-44" />}>{account}</Suspense>
+            <Suspense fallback={<span className="block size-8 animate-spin rounded-full border-2 border-white/10 border-t-gold" aria-hidden />}>{account}</Suspense>
           </div>
         </div>
         {nav.length > 1 && (
