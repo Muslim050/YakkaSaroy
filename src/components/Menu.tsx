@@ -14,7 +14,7 @@ export function Menu() {
             />
             <BookingButton
               hall="restaurant"
-              className="mt-8 inline-flex rounded-full bg-night px-6 py-3.5 text-sm font-medium text-ivory transition-colors hover:bg-night-3"
+              className="mt-8 inline-flex rounded-full brand-action px-6 py-3.5 text-sm font-medium"
             >
               Забронировать столик
             </BookingButton>
