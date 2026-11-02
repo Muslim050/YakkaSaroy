@@ -4,7 +4,9 @@ import { and, asc, count, desc, eq, gte, ilike, isNotNull, like, lt, ne, or, sql
 import { getDb, getSql } from "@/db";
 import { adminUsers, bookings, programOptions } from "@/db/schema";
 import { toRow } from "@/db/rows";
-import { HALLS, RESTAURANT_HOURS, RESTAURANT_TABLES, SLOTS, type HallId, type SlotId } from "./data";
+import { HALLS, RESTAURANT_HOURS, RESTAURANT_TABLES, SLOTS, slotCapacity, type BanquetHallId, type HallId, type SlotId } from "./data";
+
+const BANQUET_HALLS = HALLS.filter((h) => h.id !== "restaurant");
 import type { DayAvailability } from "./availability";
 import { describeChange, offered, type Catalog, type CategoryId, type ProgramOption, type ProgramSelection } from "./program";
 import { programCategories, seedCatalog } from "./programSeed";
@@ -57,6 +59,7 @@ function toBooking(r: Row): Booking {
     hall: r.hall as HallId,
     date: r.date,
     slot: r.slot,
+    startTime: r.startTime ?? undefined,
     guests: r.guests,
     name: r.name,
     phone: r.phone,
@@ -90,9 +93,7 @@ export async function availabilityForMonth(month: string): Promise<Record<string
   const result: Record<string, DayAvailability> = {};
   for (let day = 1; day <= daysInMonth; day++) {
     result[`${month}-${String(day).padStart(2, "0")}`] = {
-      grand: { day: "free", evening: "free" },
-      small: { day: "free", evening: "free" },
-      terrace: { day: "free", evening: "free" },
+      ...(Object.fromEntries(BANQUET_HALLS.map((h) => [h.id, { day: "free", evening: "free" }])) as Record<BanquetHallId, Record<SlotId, "free" | "booked">>),
       restaurant: Object.fromEntries(RESTAURANT_HOURS.map((h) => [h, RESTAURANT_TABLES])),
     };
   }
@@ -106,29 +107,48 @@ export async function availabilityForMonth(month: string): Promise<Record<string
     if (!entry) continue;
     if (r.hall === "restaurant") {
       if (entry.restaurant[r.slot] !== undefined) entry.restaurant[r.slot] = Math.max(0, RESTAURANT_TABLES - r.n);
-    } else if (r.hall in entry) {
-      entry[r.hall as Exclude<HallId, "restaurant">][r.slot as SlotId] = "booked";
+    } else if (r.hall in entry && r.n >= slotCapacity(r.slot)) {
+      entry[r.hall as BanquetHallId][r.slot as SlotId] = "booked";
     }
   }
+  // The morning events themselves, so a form can say which start times are taken.
+  const mornings = await getDb()
+    .select({ hall: bookings.hall, date: bookings.date, startTime: bookings.startTime })
+    .from(bookings)
+    .where(and(gte(bookings.date, first), sql`${bookings.date} <= ${last}`, active, isBanquet, eq(bookings.slot, "day")));
+  for (const r of mornings) {
+    const entry = result[r.date];
+    if (!entry || !(r.hall in entry)) continue;
+    const m = (entry.morning ??= {});
+    (m[r.hall as BanquetHallId] ??= []).push(r.startTime ?? "");
+  }
   return result;
+}
+
+/** A morning window holds one event: the same start time in the same hall and day is a double booking. */
+export async function isWindowFree(hall: HallId, date: string, startTime: string, exceptId?: string) {
+  const conds = [eq(bookings.hall, hall), eq(bookings.date, date), eq(bookings.slot, "day"), eq(bookings.startTime, startTime), active];
+  if (exceptId) conds.push(ne(bookings.id, exceptId));
+  const [{ n }] = await getDb().select({ n: count() }).from(bookings).where(and(...conds));
+  return n === 0;
 }
 
 export async function isFree(hall: HallId, date: string, slot: string, exceptId?: string) {
   const conds = [eq(bookings.hall, hall), eq(bookings.date, date), eq(bookings.slot, slot), active];
   if (exceptId) conds.push(ne(bookings.id, exceptId));
   const [{ n }] = await getDb().select({ n: count() }).from(bookings).where(and(...conds));
-  return hall === "restaurant" ? n < RESTAURANT_TABLES : n === 0;
+  return n < (hall === "restaurant" ? RESTAURANT_TABLES : slotCapacity(slot));
 }
 
 /* --------------------------------------------------------------- bookings */
 
 export type NewBooking = Pick<Booking, "hall" | "date" | "slot" | "guests" | "name" | "phone" | "eventType" | "comment"> &
-  Partial<Pick<Booking, "status" | "managerNote">>;
+  Partial<Pick<Booking, "status" | "managerNote" | "extras" | "startTime">>;
 
 /**
- * Creates a booking, or returns null when the time is already taken. Banquet slots are
- * guarded by a unique index; restaurant hours by a count under an advisory lock, so two
- * guests booking the last table at once cannot both get it.
+ * Creates a booking, or returns null when the time is already taken. Evening banquets are
+ * guarded by a unique index; restaurant hours and morning events by a count under an
+ * advisory lock, so two guests booking the last place at once cannot both get it.
  */
 export async function createBooking(input: NewBooking, by: "client" | "admin" = "client"): Promise<Booking | null> {
   const now = new Date().toISOString();
@@ -138,7 +158,8 @@ export async function createBooking(input: NewBooking, by: "client" | "admin" = 
   const booking: Booking = { ...input, id: newId(), code: newCode(), status, source: by === "admin" ? "admin" : "site", history, createdAt: now, updatedAt: now };
   const row = toRow(booking);
 
-  if (input.hall !== "restaurant") {
+  const counted = input.hall === "restaurant" ? RESTAURANT_TABLES : input.slot === "day" ? slotCapacity("day") : null;
+  if (counted === null) {
     try {
       await getDb().insert(bookings).values(row);
       return booking;
@@ -149,12 +170,12 @@ export async function createBooking(input: NewBooking, by: "client" | "admin" = 
   }
 
   const q = getSql();
-  const lockKey = `restaurant|${row.date}|${row.slot}`;
+  const lockKey = `${row.hall}|${row.date}|${row.slot}`;
   const [, inserted] = await q.transaction([
     q`select pg_advisory_xact_lock(hashtext(${lockKey}))`,
-    q`insert into bookings (id, code, hall, date, slot, guests, name, phone, phone_digits, event_type, comment, status, manager_note, source, history, created_at, updated_at)
-      select ${row.id}, ${row.code}, ${row.hall}, ${row.date}, ${row.slot}, ${row.guests}, ${row.name}, ${row.phone}, ${row.phoneDigits}, ${row.eventType}, ${row.comment}, ${row.status}, ${row.managerNote}, ${row.source}, ${JSON.stringify(history)}::jsonb, ${now}, ${now}
-      where (select count(*) from bookings where hall = 'restaurant' and date = ${row.date} and slot = ${row.slot} and status <> 'cancelled') < ${RESTAURANT_TABLES}
+    q`insert into bookings (id, code, hall, date, slot, start_time, guests, name, phone, phone_digits, event_type, comment, status, manager_note, extras, source, history, created_at, updated_at)
+      select ${row.id}, ${row.code}, ${row.hall}, ${row.date}, ${row.slot}, ${row.startTime ?? null}, ${row.guests}, ${row.name}, ${row.phone}, ${row.phoneDigits}, ${row.eventType}, ${row.comment}, ${row.status}, ${row.managerNote}, ${row.extras ? JSON.stringify(row.extras) : null}::jsonb, ${row.source}, ${JSON.stringify(history)}::jsonb, ${now}, ${now}
+      where (select count(*) from bookings where hall = ${row.hall} and date = ${row.date} and slot = ${row.slot} and status <> 'cancelled') < ${counted}
       returning id`,
   ]);
   return (inserted as unknown[]).length ? booking : null;
@@ -166,7 +187,7 @@ export async function getBooking(id: string) {
 }
 
 export type BookingPatch = Partial<
-  Pick<Booking, "status" | "guests" | "eventType" | "comment" | "prepayment" | "tastingAt" | "managerNote" | "name" | "phone" | "hall" | "date" | "slot">
+  Pick<Booking, "status" | "guests" | "eventType" | "comment" | "prepayment" | "tastingAt" | "managerNote" | "name" | "phone" | "hall" | "date" | "slot" | "startTime">
 > & {
   extras?: ProgramSelection;
 };
@@ -192,6 +213,11 @@ export async function updateBooking(id: string, patch: BookingPatch, by: "client
     const where = (x: typeof to) => `${hallName(x.hall)}, ${formatDay(x.date)}, ${slotLabel(x.hall, x.slot)}`;
     log(`Перенесено: ${where(b)} → ${where(to)}`);
     Object.assign(set, to);
+    if (to.slot !== "day") set.startTime = null;
+  }
+  if (patch.startTime !== undefined && patch.startTime !== (b.startTime ?? "")) {
+    log(patch.startTime ? `Начало: ${patch.startTime}` : "Время начала убрано");
+    set.startTime = patch.startTime || null;
   }
   if (patch.guests !== undefined && patch.guests !== b.guests) {
     log(`Гостей: ${b.guests} → ${patch.guests}`);
@@ -316,18 +342,6 @@ export async function bookingsByPhone(phone: string) {
 }
 
 /** Client login: the phone must own a booking with that code. */
-export async function findClient(phone: string, code: string) {
-  const d = phoneDigits(phone);
-  const c = code.trim().toUpperCase().replace(/^YS-?/, "YS-");
-  if (d.length !== 12 || !/^YS-\d{4}$/.test(c)) return null;
-  const [r] = await getDb()
-    .select({ name: bookings.name })
-    .from(bookings)
-    .where(and(eq(bookings.phoneDigits, d), sql`upper(${bookings.code}) = ${c}`))
-    .limit(1);
-  return r ? { phone: d, name: r.name } : null;
-}
-
 export type ClientSummary = {
   phone: string;
   name: string;
@@ -432,7 +446,7 @@ export async function getCatalog(): Promise<Catalog> {
   }));
 }
 
-export type OptionInput = Pick<ProgramOption, "title" | "description" | "includes" | "price" | "media" | "order" | "hidden">;
+export type OptionInput = Pick<ProgramOption, "title" | "description" | "includes" | "price" | "media" | "order" | "hidden" | "eventTypes">;
 
 function locate(catalog: Catalog, id: string) {
   for (const category of catalog) {
@@ -495,6 +509,7 @@ export async function updateOption(id: string, input: Partial<OptionInput>) {
   await pinDefaults(catalog);
   const option: ProgramOption = { ...found.option, ...input };
   if (!option.hidden) delete option.hidden;
+  if (!option.eventTypes?.length) delete option.eventTypes;
   await saveOption(found.category.id, option);
   return { ok: true as const, option };
 }

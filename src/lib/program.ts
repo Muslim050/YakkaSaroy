@@ -1,6 +1,6 @@
 /**
- * Event program: what a banquet consists of besides the hall. Guests pick it in the
- * cabinet, managers in the admin. Every option carries photos or video so the choice
+ * Event program: what a banquet consists of besides the hall. Managers pick it in the
+ * admin with the client. Every option carries photos or video so the choice
  * is made by looking, not by reading.
  *
  * The catalog itself lives in the store and is edited in the admin (/admin/catalog);
@@ -29,6 +29,8 @@ export type ProgramOption = {
   hidden?: boolean;
   /** Deleted in the admin: gone from the lists, kept only so old bookings can show it. */
   archived?: boolean;
+  /** Occasions this option is offered for (menus differ for a wedding and a morning plov); empty means every occasion. */
+  eventTypes?: string[];
 };
 
 export type CategoryId = "menu" | "decor" | "show" | "cake" | "photo";
@@ -62,6 +64,11 @@ export function editable(c: ProgramCategory) {
 
 export function isOffered(o: ProgramOption) {
   return !o.hidden && !o.archived;
+}
+
+/** Options that fit an occasion: the ones tied to it plus the ones offered for every occasion. */
+export function forEventType<T extends Pick<ProgramOption, "eventTypes">>(options: T[], eventType: string | undefined) {
+  return options.filter((o) => !o.eventTypes?.length || (eventType !== undefined && o.eventTypes.includes(eventType)));
 }
 
 export function findOption(catalog: Catalog, id: string) {

@@ -9,6 +9,7 @@ export function toRow(b: Booking): typeof bookings.$inferInsert {
     hall: b.hall,
     date: b.date,
     slot: b.slot,
+    startTime: b.startTime ?? null,
     guests: b.guests,
     name: b.name,
     phone: b.phone,

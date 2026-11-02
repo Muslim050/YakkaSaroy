@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { RESTAURANT_TABLES, type HallId, type SlotId } from "./data";
+import { RESTAURANT_TABLES, type BanquetHallId, type HallId, type SlotId } from "./data";
 
 /** Shape returned by GET /api/availability for one day. */
-export type DayAvailability = {
-  grand: Record<SlotId, "free" | "booked">;
-  small: Record<SlotId, "free" | "booked">;
-  terrace: Record<SlotId, "free" | "booked">;
+export type DayAvailability = Record<BanquetHallId, Record<SlotId, "free" | "booked">> & {
   restaurant: Record<string, number>; // hour -> free tables
+  /** start times of the morning events per hall ("" when not set); the day slot is "booked" once the hall is full */
+  morning?: Partial<Record<BanquetHallId, string[]>>;
 };
 export type MonthAvailability = Record<string, DayAvailability>;
 export type DayState = "past" | "free" | "partial" | "full" | "unknown";
