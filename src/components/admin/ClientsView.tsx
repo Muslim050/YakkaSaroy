@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { formatDay, formatPhone, formatSum, hallName, phoneDigits, slotLabel, type Booking } from "@/lib/bookings";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type Client = { phone: string; name: string; bookings: number; upcoming: number; nextDate?: string; lastDate: string; spent: number };
@@ -107,18 +107,18 @@ export function ClientsView({
         </div>
       </div>
 
-      <Sheet open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
-        <SheetContent className="w-full gap-0 overflow-y-auto p-0 sm:max-w-md">
+      <Modal open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
+        <ModalContent className="w-full gap-0 overflow-y-auto p-0 sm:max-w-md">
           {open && (
             <>
-              <SheetHeader className="border-b border-border px-6 py-5">
-                <SheetTitle className="font-display text-2xl font-normal text-night">{open.name}</SheetTitle>
-                <SheetDescription>
+              <ModalHeader className="border-b border-border px-6 py-5">
+                <ModalTitle className="font-display text-2xl font-normal text-night">{open.name}</ModalTitle>
+                <ModalDescription>
                   <a href={`tel:+${phoneDigits(open.phone)}`} className="inline-flex items-center gap-1.5 text-ink hover:text-gold-dim">
                     <Phone className="size-3.5" /> {formatPhone(open.phone)}
                   </a>
-                </SheetDescription>
-              </SheetHeader>
+                </ModalDescription>
+              </ModalHeader>
               <ul>
                 {list.map((b) => (
                   <li key={b.id} className="border-b border-border">
@@ -136,8 +136,8 @@ export function ClientsView({
               </ul>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }
