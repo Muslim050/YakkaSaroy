@@ -13,6 +13,8 @@ export const bookings = pgTable(
     date: date("date", { mode: "string" }).notNull(),
     /** "day" | "evening" for halls, "19:00" for restaurant tables */
     slot: text("slot").notNull(),
+    /** when a morning event starts, "10:00"; several morning events share a day */
+    startTime: text("start_time"),
     guests: integer("guests").notNull(),
     name: text("name").notNull(),
     phone: text("phone").notNull(),
@@ -38,10 +40,11 @@ export const bookings = pgTable(
     index("bookings_date_idx").on(t.date),
     index("bookings_phone_idx").on(t.phoneDigits),
     index("bookings_status_idx").on(t.status),
-    // One active banquet per hall, day and slot: the database refuses a double booking.
+    // One active evening banquet per hall and day: the database refuses a double booking.
+    // The morning takes several events, counted under a lock in the store.
     uniqueIndex("bookings_hall_slot_unique")
       .on(t.hall, t.date, t.slot)
-      .where(sql`${t.hall} <> 'restaurant' and ${t.status} <> 'cancelled'`),
+      .where(sql`${t.hall} <> 'restaurant' and ${t.slot} <> 'day' and ${t.status} <> 'cancelled'`),
   ],
 );
 

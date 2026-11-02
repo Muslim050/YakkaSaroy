@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Loader } from "@/components/app/Loader";
 import { PageHeader } from "@/components/app/AppShell";
 import { CatalogView } from "@/components/admin/CatalogView";
 import { requireAdmin } from "@/lib/auth";
@@ -12,7 +13,7 @@ export default function CatalogPage() {
         title="Каталог"
         description="Меню, оформление, шоу, торты и съёмка, из которых гости собирают программу в личном кабинете. Изменения видны гостям сразу после сохранения."
       />
-      <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-secondary" />}>
+      <Suspense fallback={<Loader className="min-h-[70vh]" label="Загружаем каталог…" />}>
         <Catalog />
       </Suspense>
     </>

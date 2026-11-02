@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Loader } from "@/components/app/Loader";
 import { PageHeader } from "@/components/app/AppShell";
 import { ClientsView } from "@/components/admin/ClientsView";
 import { requireAdmin } from "@/lib/auth";
@@ -11,7 +12,7 @@ export default function ClientsPage({ searchParams }: PageProps<"/admin/clients"
   return (
     <>
       <PageHeader title="Клиенты" description="Все, кто бронировал банкетные залы. Один телефон считается одним клиентом." />
-      <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-secondary" />}>
+      <Suspense fallback={<Loader className="min-h-[70vh]" label="Загружаем клиентов…" />}>
         <Clients searchParams={searchParams} />
       </Suspense>
     </>

@@ -1,23 +1,25 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowUpRight, Phone } from "lucide-react";
-import { PageHeader } from "@/components/app/AppShell";
+import { ArrowUpRight, CalendarCheck, Coins, Gem, Phone, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/app/StatusBadge";
+import { HallCalendar } from "@/components/admin/HallCalendar";
+import { Loader } from "@/components/app/Loader";
 import { requireAdmin } from "@/lib/auth";
 import { overview, todayISO } from "@/lib/store";
 import { formatDateTime, formatDay, formatPhone, formatSumShort, hallName, slotLabel, type Booking } from "@/lib/bookings";
 
-export default function AdminHome() {
+export default function AdminHome({ searchParams }: PageProps<"/admin">) {
   return (
     <Suspense fallback={<OverviewSkeleton />}>
-      <Overview />
+      <Overview searchParams={searchParams} />
     </Suspense>
   );
 }
 
 const open = (b: Booking) => `/admin/bookings?status=all&open=${b.id}`;
 
-async function Overview() {
+async function Overview({ searchParams }: { searchParams: PageProps<"/admin">["searchParams"] }) {
   await requireAdmin();
   const o = await overview();
   const today = todayISO();
@@ -28,17 +30,18 @@ async function Overview() {
 
   return (
     <>
-      <PageHeader title="Обзор" description="Что требует внимания сегодня и какие торжества впереди на неделе.">
-        <Link href="/admin/calendar" className="inline-flex h-10 items-center rounded-lg border border-border bg-card px-4 text-sm font-medium hover:bg-secondary">
-          Открыть календарь
-        </Link>
-      </PageHeader>
+      <h1 className="sr-only">Обзор</h1>
+      <div className="mb-8 rounded-[24px] border border-border bg-[#f6f2ee] p-4 shadow-[0_16px_45px_-30px_rgba(50,38,28,.3)] sm:p-5">
+      <div className="mb-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Kpi icon={CalendarCheck} label="Новые заявки" value={String(o.newRequests.length)} note="ждут звонка" href="/admin/bookings?status=new" alert={o.newRequests.length > 0} />
+        <Kpi icon={Gem} label="Торжеств за 30 дней" value={String(o.next30)} note="во всех залах" href="#calendar" />
+        <Kpi icon={Coins} label="Предоплаты за 30 дней" value={formatSumShort(o.prepaid30)} note={`из ${formatSumShort(o.expected30)} по банкетному меню`} />
+        <Kpi icon={UtensilsCrossed} label="Столиков сегодня" value={String(o.tablesToday)} note="в ресторане" href="/admin/bookings?kind=restaurant" />
+      </div>
 
-      <div className="mb-8 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4">
-        <Kpi label="Новые заявки" value={String(o.newRequests.length)} note="ждут звонка" href="/admin/bookings?status=new" alert={o.newRequests.length > 0} />
-        <Kpi label="Торжеств за 30 дней" value={String(o.next30)} note="во всех залах" href="/admin/calendar" />
-        <Kpi label="Предоплаты за 30 дней" value={formatSumShort(o.prepaid30)} note={`из ${formatSumShort(o.expected30)} по банкетному меню`} />
-        <Kpi label="Столиков сегодня" value={String(o.tablesToday)} note="в ресторане" href="/admin/bookings?kind=restaurant" />
+      <section id="calendar" className="mb-8 scroll-mt-6">
+        <HallCalendar searchParams={searchParams} path="/admin" />
+      </section>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
@@ -148,36 +151,33 @@ async function Overview() {
   );
 }
 
-function Kpi({ label, value, note, href, alert }: { label: string; value: string; note: string; href?: string; alert?: boolean }) {
+function Kpi({ icon: Icon, label, value, note, href, alert }: { icon: LucideIcon; label: string; value: string; note: string; href?: string; alert?: boolean }) {
   const body = (
     <>
-      <p className="flex items-center justify-between text-sm text-muted-foreground">
-        {label}
-        {href && <ArrowUpRight className="size-4 opacity-0 transition-opacity group-hover:opacity-100" />}
-      </p>
-      <p className="mt-2 font-display text-3xl leading-none text-night tabular-nums sm:text-4xl">
-        {value}
-        {alert && <span className="ml-2 inline-block size-2 -translate-y-3 rounded-full bg-amber-500 align-middle" aria-label="есть новые" />}
-      </p>
-      <p className="mt-2 text-xs text-muted-foreground">{note}</p>
+      <span className="flex items-start gap-3">
+        <span className="mt-0.5 shrink-0 text-[#b77a2a]">
+          <Icon className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1 text-xs font-medium text-ink">{label}{href && <ArrowUpRight className="ml-auto size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />}</span>
+          <span className="mt-1 block text-2xl font-semibold leading-none text-ink tabular-nums">{value}</span>
+          <span className="mt-1.5 block text-[11px] leading-snug text-muted-foreground">{note}</span>
+        </span>
+      </span>
     </>
   );
+  const cls = cn(
+    "group rounded-2xl border px-4 py-3 transition-colors shadow-[0_8px_22px_-14px_rgba(50,38,28,.3)]",
+    label === "Новые заявки" || alert ? "border-[#efd6b3] bg-[#fbefe1]" : "border-border bg-card",
+    href && "hover:border-gold/60",
+  );
   return href ? (
-    <Link href={href} className="group bg-card p-5 transition-colors hover:bg-[#fffaf0]">{body}</Link>
+    <Link href={href} className={cls}>{body}</Link>
   ) : (
-    <div className="bg-card p-5">{body}</div>
+    <div className={cls}>{body}</div>
   );
 }
 
 function OverviewSkeleton() {
-  return (
-    <div className="grid gap-6">
-      <div className="h-12 w-60 animate-pulse rounded bg-secondary" />
-      <div className="h-28 animate-pulse rounded-xl bg-secondary" />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="h-96 animate-pulse rounded-xl bg-secondary" />
-        <div className="h-96 animate-pulse rounded-xl bg-secondary" />
-      </div>
-    </div>
-  );
+  return <Loader className="min-h-[80vh]" label="Загружаем обзор…" />;
 }

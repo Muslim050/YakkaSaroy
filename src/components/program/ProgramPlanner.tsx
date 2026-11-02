@@ -9,6 +9,7 @@ import { formatDay, formatSum, formatSumShort, hallCost, hallName, slotLabel, ty
 import { HALLS } from "@/lib/data";
 import {
   defaultSelection,
+  forEventType,
   offered,
   optionCost,
   programCost,
@@ -21,13 +22,17 @@ import {
 } from "@/lib/program";
 import { OptionCard } from "./OptionCard";
 
-type PlannerBooking = Pick<Booking, "id" | "code" | "hall" | "date" | "slot" | "guests" | "eventType" | "extras">;
+type PlannerBooking = Pick<Booking, "id" | "code" | "hall" | "date" | "slot" | "startTime" | "guests" | "eventType" | "extras">;
 
 const canon = (catalog: Catalog, s: ProgramSelection) => catalog.map((c) => [...(s[c.id] ?? [])].sort().join(",")).join("|");
 
-/** What a category shows: the options on offer, plus ones this booking chose before they were taken off. */
-function visible(c: ProgramCategory, saved: ProgramSelection) {
-  const list: { option: ProgramOption; gone: boolean }[] = offered(c).map((option) => ({ option, gone: false }));
+/**
+ * What a category shows: the options on offer for this occasion, plus ones this
+ * booking chose before they were taken off.
+ */
+function visible(c: ProgramCategory, saved: ProgramSelection, eventType: string | undefined) {
+  const onOffer = forEventType(offered(c), eventType);
+  const list: { option: ProgramOption; gone: boolean }[] = onOffer.map((option) => ({ option, gone: false }));
   for (const id of saved[c.id] ?? []) {
     const option = c.options.find((o) => o.id === id);
     if (option && !list.some((x) => x.option.id === id)) list.push({ option, gone: true });
@@ -61,7 +66,7 @@ export function ProgramPlanner({
   const hall = hallCost(b) ?? 0;
   const extra = programCost(catalog, sel, b.guests);
   const chosen = selectedOptions(catalog, sel);
-  const sections = catalog.map((c) => ({ category: c, items: visible(c, saved) })).filter((s) => s.items.length > 0);
+  const sections = catalog.map((c) => ({ category: c, items: visible(c, saved, b.eventType) })).filter((s) => s.items.length > 0);
   const pricePerGuest = HALLS.find((h) => h.id === b.hall)?.pricePerGuest ?? 0;
 
   function toggle(c: ProgramCategory, id: string) {
@@ -97,7 +102,7 @@ export function ProgramPlanner({
       <div className="mb-8 mt-4">
         <h1 className="font-display text-4xl leading-none text-night sm:text-5xl">Программа торжества</h1>
         <p className="mt-3 text-[15px] text-mute">
-          {b.eventType ?? "Торжество"}, {hallName(b.hall).toLowerCase()}, {formatDay(b.date, true)}, {slotLabel(b.hall, b.slot)}, {b.guests} гостей. Бронь {b.code}.
+          {b.eventType ?? "Торжество"}, {hallName(b.hall).toLowerCase()}, {formatDay(b.date, true)}, {slotLabel(b.hall, b.slot, b.startTime)}, {b.guests} гостей. Бронь {b.code}.
         </p>
       </div>
 
@@ -216,7 +221,7 @@ function SaveButton({ busy, dirty, onSave }: { busy: boolean; dirty: boolean; on
       type="button"
       disabled={busy || !dirty}
       onClick={onSave}
-      className="h-11 w-full rounded-lg bg-night text-sm font-medium text-ivory transition-colors hover:bg-night-3 disabled:opacity-50"
+      className="h-11 w-full rounded-lg brand-action text-sm font-medium disabled:opacity-50"
     >
       {busy ? "Сохраняем" : dirty ? "Сохранить программу" : "Всё сохранено"}
     </button>

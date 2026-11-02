@@ -80,7 +80,7 @@ export function Halls() {
               <button
                 type="button"
                 onClick={() => goToBooking({ hall: hall.id, date: "" })}
-                className="rounded-full bg-gold px-6 py-3 text-sm font-medium text-night transition-colors hover:bg-gold-2"
+                className="rounded-full brand-action px-6 py-3 text-sm font-medium"
               >
                 Свободные даты в этом зале
               </button>

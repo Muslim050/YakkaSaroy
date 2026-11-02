@@ -1,4 +1,4 @@
-import { EVENT_TYPES, HALLS, RESTAURANT_HOURS, SLOTS, type HallId } from "./data";
+import { EVENT_TYPES, HALLS, MORNING_TIMES, RESTAURANT_HOURS, SLOTS, type HallId } from "./data";
 import { STATUS_ORDER, type BookingStatus } from "./bookings";
 import type { CategoryId, Media } from "./program";
 import type { OptionInput } from "./store";
@@ -11,9 +11,17 @@ export function checkSlot(hall: string, date: string, slot: string): string | nu
   return ok ? null : "Выберите время";
 }
 
-export function checkGuests(hall: HallId, guests: number): string | null {
-  const max = HALLS.find((h) => h.id === hall)?.guestsMax ?? 0;
+/** A hall's capacity is a guide, not a wall: a manager may book past it, a table never seats more than it has chairs. */
+const MANAGER_GUESTS_CAP = 10_000;
+
+export function checkGuests(hall: HallId, guests: number, by: "client" | "admin" = "client"): string | null {
+  const def = HALLS.find((h) => h.id === hall);
+  const max = by === "admin" && hall !== "restaurant" ? MANAGER_GUESTS_CAP : (def?.guestsMax ?? 0);
   return Number.isInteger(guests) && guests >= 1 && guests <= max ? null : `Количество гостей: от 1 до ${max}`;
+}
+
+export function isMorningTime(v: unknown): v is string {
+  return typeof v === "string" && MORNING_TIMES.includes(v);
 }
 
 export function isStatus(v: unknown): v is BookingStatus {
@@ -78,6 +86,12 @@ export function parseOption(body: Record<string, unknown>, partial: boolean): { 
     v.order = order;
   }
   if (has("hidden")) v.hidden = body.hidden === true;
+  if (has("eventTypes")) {
+    if (body.eventTypes !== undefined && !Array.isArray(body.eventTypes)) return { ok: false, error: "Поводы должны быть списком" };
+    const list = [...new Set(((body.eventTypes as unknown[]) ?? []).filter((x): x is string => typeof x === "string"))];
+    if (!list.every((x) => EVENT_TYPES.includes(x))) return { ok: false, error: "Неизвестный повод" };
+    v.eventTypes = list;
+  }
   if (has("media")) {
     const media = parseMedia(body.media ?? []);
     if (typeof media === "string") return { ok: false, error: media };

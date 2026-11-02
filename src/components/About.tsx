@@ -25,7 +25,7 @@ export function About() {
         <div className="lg:col-span-7">
           <SectionTitle
             title="Как проходит бронирование"
-            lead="Три банкетных зала, летняя терраса и ресторан в одном здании. Кухню, оформление, свет и звук готовит наша команда, от вас нужны дата и список гостей."
+            lead="Четыре банкетных зала и ресторан в одном здании. Кухню, оформление, свет и звук готовит наша команда, от вас нужны дата и список гостей."
           />
 
           <ol className="mt-12 border-b border-night/12">
@@ -42,7 +42,7 @@ export function About() {
 
           <a
             href="#booking"
-            className="mt-10 inline-flex items-center rounded-full bg-night px-6 py-3.5 text-sm font-medium text-ivory transition-colors hover:bg-night-3"
+            className="mt-10 inline-flex items-center rounded-full brand-action px-6 py-3.5 text-sm font-medium"
           >
             Посмотреть свободные даты
           </a>

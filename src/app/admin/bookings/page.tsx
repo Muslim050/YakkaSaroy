@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Loader } from "@/components/app/Loader";
 import { PageHeader } from "@/components/app/AppShell";
 import { BookingsView } from "@/components/admin/BookingsView";
 import { requireAdmin } from "@/lib/auth";
@@ -10,7 +11,7 @@ export default function BookingsPage({ searchParams }: PageProps<"/admin/booking
   return (
     <>
       <PageHeader title="Брони" description="Заявки с сайта и брони менеджеров. Нажмите на строку, чтобы открыть карточку." />
-      <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-secondary" />}>
+      <Suspense fallback={<Loader className="min-h-[70vh]" label="Загружаем брони…" />}>
         <Bookings searchParams={searchParams} />
       </Suspense>
     </>

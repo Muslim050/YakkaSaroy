@@ -106,7 +106,7 @@ export function BookingsView({
         <button
           type="button"
           onClick={() => setCreating({ hall: isTable ? "restaurant" : "grand" })}
-          className="inline-flex h-10 items-center gap-2 rounded-lg bg-night px-4 text-sm font-medium text-ivory transition-colors hover:bg-night-3"
+          className="inline-flex h-10 items-center gap-2 rounded-lg brand-action px-4 text-sm font-medium"
         >
           <Plus className="size-4" /> Новая бронь
         </button>
@@ -183,7 +183,7 @@ export function BookingsView({
                     {isTable ? b.slot : (
                       <>
                         <span className="block">{hallName(b.hall)}</span>
-                        <span className="block text-xs text-muted-foreground">{slotLabel(b.hall, b.slot)}</span>
+                        <span className="block text-xs text-muted-foreground">{slotLabel(b.hall, b.slot, b.startTime)}</span>
                       </>
                     )}
                   </TableCell>
@@ -231,7 +231,7 @@ export function BookingsView({
       </div>
 
       <BookingSheet booking={open} catalog={catalog} onClose={() => setOpenId(null)} onSaved={setSaved} />
-      <NewBookingSheet preset={creating} onClose={() => setCreating(null)} />
+      <NewBookingSheet preset={creating} catalog={catalog} onClose={() => setCreating(null)} />
     </div>
   );
 }

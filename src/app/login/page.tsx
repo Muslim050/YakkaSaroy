@@ -10,11 +10,9 @@ import { CONTACTS } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Вход — Yakka Saroy" };
 
-/** Already signed in? Go straight to your own area. */
+/** Already signed in? Go straight to the admin. */
 async function SignedInRedirect() {
-  const s = await getSession();
-  if (s?.role === "admin") redirect("/admin");
-  if (s?.role === "client") redirect("/cabinet");
+  if ((await getSession())?.role === "admin") redirect("/admin");
   return null;
 }
 
@@ -34,9 +32,9 @@ export default function LoginPage() {
         </Link>
 
         <div className="my-12 max-w-xl">
-          <h2 className="font-display text-5xl leading-[1.02] xl:text-6xl">Личный кабинет</h2>
+          <h2 className="font-display text-5xl leading-[1.02] xl:text-6xl">Кабинет менеджера</h2>
           <p className="mt-5 max-w-md text-[15px] leading-relaxed text-ivory/60">
-            Гости смотрят свои торжества, дегустацию и оплату. Менеджеры ведут заявки, календарь залов и клиентов.
+            Заявки с сайта, календарь залов, клиенты и каталог программы в одном месте.
           </p>
         </div>
 
@@ -56,6 +54,7 @@ export default function LoginPage() {
         </Link>
         <div className="mx-auto my-auto w-full max-w-sm py-12">
           <h1 className="font-display text-4xl text-night">Вход</h1>
+          <p className="mt-2 text-sm text-mute">Для сотрудников Yakka Saroy.</p>
           <div className="mt-8">
             <Suspense>
               <LoginForm />

@@ -22,7 +22,7 @@ export function Hero() {
       <div className="hero-copy mx-auto w-full max-w-6xl px-5 pb-8 pt-36 sm:px-8">
         <h1 className="rise font-display text-[clamp(4.25rem,14vw,11.5rem)] leading-[0.86] tracking-[-0.01em]">Yakka Saroy</h1>
         <p className="rise rise-2 mt-6 max-w-lg text-lg leading-relaxed text-ivory/85">
-          Банкетные залы и ресторан в Яккасарайском районе Ташкента. Свадьбы, никох и юбилеи на 40–800 гостей.
+          Банкетные залы и ресторан в Яккасарайском районе Ташкента. Свадьбы, никох и юбилеи на 20–800 гостей.
         </p>
 
         <div className="rise rise-3 mt-9">

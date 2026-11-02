@@ -1,4 +1,4 @@
-import { HALLS, SLOTS, type HallId } from "./data";
+import { HALLS, SLOTS, morningWindow, type HallId } from "./data";
 import { programCost, type Catalog, type ProgramSelection } from "./program";
 
 /**
@@ -24,6 +24,8 @@ export type Booking = {
   hall: HallId;
   date: string; // YYYY-MM-DD
   slot: string; // "day" | "evening" | "19:00"
+  /** When a morning event starts, "10:00"; the evening has one fixed time. */
+  startTime?: string;
   guests: number;
   name: string;
   phone: string;
@@ -63,10 +65,12 @@ export function hallName(hall: HallId) {
   return HALLS.find((h) => h.id === hall)?.name ?? hall;
 }
 
-export function slotLabel(hall: HallId, slot: string) {
+export function slotLabel(hall: HallId, slot: string, startTime?: string) {
   if (hall === "restaurant") return `столик на ${slot}`;
   const s = SLOTS.find((x) => x.id === slot);
-  return s ? `${s.name.toLowerCase()}, ${s.time}` : slot;
+  if (!s) return slot;
+  const w = slot === "day" ? morningWindow(startTime) : undefined;
+  return w ? `утро, ${w.label}` : `${s.name.toLowerCase()}, ${s.time}`;
 }
 
 /** Banquet estimate: hall price per guest plus the chosen program. Restaurant tables have no estimate. */
@@ -122,4 +126,13 @@ export function toClientView(b: Booking): ClientBooking {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { managerNote, source, seeded, demo, ...rest } = b;
   return { ...rest, history: rest.history.filter((h) => h.by !== "system" || h.text === "Торжество проведено") };
+}
+
+/** Keeps a phone field in the "+998 90 123 45 67" shape while it is typed. */
+export function maskPhone(raw: string) {
+  let d = raw.replace(/\D/g, "");
+  if (d.startsWith("998")) d = d.slice(3);
+  d = d.slice(0, 9);
+  const parts = [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean);
+  return `+998${parts.length ? ` ${parts.join(" ")}` : ""}`;
 }

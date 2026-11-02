@@ -5,6 +5,32 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Primary actions share the warm brass-to-brown finish used in the calendar. */
+@utility brand-action {
+  background: linear-gradient(to bottom, #96774a, #3e301f);
+  color: #fff;
+  box-shadow: 0 4px 10px rgb(62 48 31 / 18%);
+  transition: filter 150ms ease, box-shadow 150ms ease;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.12);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #a77d43;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+}
+
+.brand-action {
+  border-radius: 9999px;
+}
+
 :root {
   /* Yakka Saroy: night-blue facade lighting, brass, warm limestone */
   --night: #0d1828;
@@ -111,7 +137,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Workspace (admin and client cabinet): light surfaces under a night top bar.
+/* Workspace (admin): light surfaces under a night top bar.
    :has() also reaches popovers, menus and sheets that are portalled to <body>. */
 :root:has([data-theme="light"]) {
   --background: #f7f3ec;
@@ -244,4 +270,25 @@ body {
   html {
     @apply font-sans;
   }
+}
+
+/* ---------- Loader: a gold arc that runs around the monogram ---------- */
+@keyframes ys-loader-turn { to { transform: rotate(360deg); } }
+@keyframes ys-loader-glow { 0%, 100% { opacity: .55; transform: scale(.97); } 50% { opacity: 1; transform: scale(1.03); } }
+.ys-loader-ring { border: 1px solid rgba(166,125,65,.35); }
+.ys-loader-ring-dark { border-color: rgba(247,243,236,.3); }
+.ys-loader-arc {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: #b7873e;
+  filter: drop-shadow(0 0 5px rgba(183,135,62,.5));
+  animation: ys-loader-turn 4.5s linear infinite;
+}
+.ys-loader-glow-light { background: radial-gradient(circle, rgba(211,170,98,.15), rgba(211,170,98,.06) 50%, transparent 72%); }
+.ys-loader-glow-dark { background: radial-gradient(circle, rgba(211,170,98,.22), rgba(211,170,98,.08) 50%, transparent 72%); }
+.ys-loader-glow { animation: ys-loader-glow 4.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ys-loader-arc, .ys-loader-glow { animation: none; }
 }

@@ -1,4 +1,6 @@
-export type HallId = "grand" | "small" | "terrace" | "restaurant";
+export type HallId = "grand" | "second" | "third" | "fourth" | "restaurant";
+/** The banquet halls, without the restaurant. */
+export type BanquetHallId = Exclude<HallId, "restaurant">;
 export type SlotId = "day" | "evening";
 
 export const RESTAURANT_HOURS = ["12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"];
@@ -9,6 +11,8 @@ export const HALLS: {
   name: string;
   bestFor: string;
   seats: string;
+  /** The smallest banquet the hall takes; 1 for a restaurant table. */
+  guestsMin: number;
   capacity: string;
   guestsMax: number;
   /** Banquet price per guest in sum; null for the restaurant (pay as you go). */
@@ -20,9 +24,10 @@ export const HALLS: {
 }[] = [
   {
     id: "grand",
-    name: "Большой зал",
+    name: "Большой зал 1",
     bestFor: "Свадьбы",
     seats: "300–800",
+    guestsMin: 300,
     capacity: "от 300 до 800 гостей",
     guestsMax: 800,
     pricePerGuest: 350_000,
@@ -33,38 +38,56 @@ export const HALLS: {
     price: "от 350 000 сум за гостя",
   },
   {
-    id: "small",
-    name: "Малый зал",
+    id: "second",
+    name: "Большой зал 2",
+    bestFor: "Свадьбы, никох, юбилеи",
+    seats: "120–300",
+    guestsMin: 120,
+    capacity: "от 120 до 300 гостей",
+    guestsMax: 300,
+    pricePerGuest: 320_000,
+    description:
+      "Второй из двух главных залов: высокие потолки, своя сцена и танцпол. Торжество на триста гостей проходит здесь так же торжественно, как в первом.",
+    features: ["Сцена и танцпол", "Экран для видеопоздравлений", "Отдельный вход", "Гардероб и зона фотосессии"],
+    image: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=1600&q=80&auto=format&fit=crop",
+    price: "от 320 000 сум за гостя",
+  },
+  {
+    id: "third",
+    name: "Третий зал",
     bestFor: "Никох, юбилеи, корпоративы",
-    seats: "80–250",
-    capacity: "от 80 до 250 гостей",
-    guestsMax: 250,
+    seats: "40–100",
+    guestsMin: 40,
+    capacity: "от 40 до 100 гостей",
+    guestsMax: 100,
     pricePerGuest: 300_000,
     description:
-      "Тёплый свет люстр и круглые столы на десять человек. Зал небольшой, гости видят и слышат друг друга.",
-    features: ["Круглые столы на 10 персон", "Экран для видеопоздравлений", "Отдельная детская зона", "Собственный бар"],
-    image: "https://images.unsplash.com/photo-1777652564099-d2c1571a3cd9?w=1600&q=80&auto=format&fit=crop",
+      "На втором этаже, в центре комплекса. Тёплый свет люстр и круглые столы на десять человек: гости видят и слышат друг друга.",
+    features: ["Второй этаж, центр комплекса", "Круглые столы на 10 персон", "Экран для видеопоздравлений", "Собственный бар"],
+    image: "https://images.unsplash.com/photo-1769018508631-fe4ebf3fba3a?w=1600&q=80&auto=format&fit=crop",
     price: "от 300 000 сум за гостя",
   },
   {
-    id: "terrace",
-    name: "Летняя терраса",
-    bestFor: "Летние вечера, с мая по октябрь",
-    seats: "40–150",
-    capacity: "от 40 до 150 гостей",
-    guestsMax: 150,
-    pricePerGuest: 250_000,
+    id: "fourth",
+    name: "Четвёртый зал",
+    bestFor: "Семейные торжества, бешик-той, встречи",
+    seats: "20–60",
+    guestsMin: 20,
+    capacity: "от 20 до 60 гостей",
+    guestsMax: 60,
+    pricePerGuest: 280_000,
     description:
-      "Сад с фонтаном, гирлянды над столами и вид на подсвеченный фасад. В прохладные вечера включаем обогреватели.",
-    features: ["Фонтан и вечерняя подсветка", "Живая музыка", "Обогреватели и навес", "Мангал-меню"],
-    image: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1600&q=80&auto=format&fit=crop",
-    price: "от 250 000 сум за гостя",
+      "Дополнительный банкетный зал для небольших торжеств. Камерно, по-домашнему и с тем же меню, что и в больших залах.",
+    features: ["Один общий стол или круглые столы", "Отдельная детская зона", "Экран и звук", "Свой вход с парковки"],
+    image: "https://images.unsplash.com/photo-1777652564099-d2c1571a3cd9?w=1600&q=80&auto=format&fit=crop",
+    price: "от 280 000 сум за гостя",
   },
   {
     id: "restaurant",
     name: "Ресторан",
     bestFor: "Ужин без повода",
     seats: "2–12",
+    guestsMin: 1,
     capacity: "столики на 2–12 персон",
     guestsMax: 12,
     pricePerGuest: null,
@@ -77,11 +100,23 @@ export const HALLS: {
 ];
 
 export const SLOTS: { id: SlotId; name: string; time: string }[] = [
-  { id: "day", name: "Дневное торжество", time: "12:00–17:00" },
+  { id: "day", name: "Утреннее торжество", time: "10:00–13:00" },
   { id: "evening", name: "Вечернее торжество", time: "18:00–23:30" },
 ];
+/** The morning is three one-hour windows, one event each; the evening is one event. */
+export const MORNING_WINDOWS: { id: string; label: string; short: string }[] = [
+  { id: "10:00", label: "10:00–11:00", short: "10–11" },
+  { id: "11:00", label: "11:00–12:00", short: "11–12" },
+  { id: "12:00", label: "12:00–13:00", short: "12–13" },
+];
+export const MORNING_CAPACITY = MORNING_WINDOWS.length;
+export const MORNING_TIMES = MORNING_WINDOWS.map((w) => w.id);
+export const morningWindow = (startTime?: string) => MORNING_WINDOWS.find((w) => w.id === startTime);
+export function slotCapacity(slot: string) {
+  return slot === "day" ? MORNING_CAPACITY : 1;
+}
 
-export const EVENT_TYPES = ["Свадьба", "Никох", "Юбилей", "Бешик-той", "Корпоратив", "Выпускной", "Другое"];
+export const EVENT_TYPES = ["Свадьба", "День рождения", "Корпоратив", "Утренний плов", "Официальный приём"];
 
 export const MENU = [
   {
