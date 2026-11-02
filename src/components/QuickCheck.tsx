@@ -1,5 +1,7 @@
 "use client";
 
+import { Loader } from "@/components/app/Loader";
+
 import { useMemo, useState } from "react";
 import { CalendarDays, Check, Landmark, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -118,7 +120,7 @@ export function QuickCheck() {
           <button
             type="button"
             onClick={() => (date ? goToBooking({ hall, date }) : setOpen(true))}
-            className="h-full w-full rounded-xl bg-gold px-6 py-3 font-semibold text-night transition hover:bg-gold-2"
+            className="h-full w-full rounded-xl brand-action px-6 py-3 font-semibold"
           >
             {date ? "Забронировать" : "Проверить дату"}
           </button>
@@ -195,7 +197,7 @@ function ResultCard({
       </div>
 
       {!entry ? (
-        <div className="mt-4 h-16 animate-pulse rounded-xl bg-ivory/5" />
+        <Loader className="mt-4 h-40" tone="dark" size="box" label="Смотрим занятость…" />
       ) : hall === "restaurant" ? (
         <TableBars entry={entry} onPick={(slot) => goToBooking({ hall, date, slot })} />
       ) : state === "full" ? (
