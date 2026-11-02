@@ -5,30 +5,25 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Primary actions share the warm brass-to-brown finish used in the calendar. */
-@utility brand-action {
-  background: linear-gradient(to bottom, #96774a, #3e301f);
-  color: #fff;
-  box-shadow: 0 4px 10px rgb(62 48 31 / 18%);
-  transition: filter 150ms ease, box-shadow 150ms ease;
-
-  &:hover:not(:disabled) {
-    filter: brightness(1.12);
+/* Primary actions: the brass finish of the facade. A plain class, so it works wherever it is written. */
+@layer components {
+  .brand-action {
+    background: linear-gradient(to bottom, #c9a65a, #8b6a33);
+    color: #141a23;
+    box-shadow: 0 6px 14px -8px rgb(62 48 31 / 55%);
+    transition: filter 150ms ease, box-shadow 150ms ease;
   }
-
-  &:focus-visible {
+  .brand-action:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+  .brand-action:focus-visible {
     outline: 2px solid #a77d43;
     outline-offset: 2px;
   }
-
-  &:disabled {
+  .brand-action:disabled {
     cursor: not-allowed;
     box-shadow: none;
   }
-}
-
-.brand-action {
-  border-radius: 9999px;
 }
 
 :root {
@@ -292,3 +287,4 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .ys-loader-arc, .ys-loader-glow { animation: none; }
 }
+
