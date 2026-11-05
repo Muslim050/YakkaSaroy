@@ -23,6 +23,7 @@ function ModalContent({ className, children, showCloseButton = true, ...props }:
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Backdrop
+        forceRender
         data-slot="modal-overlay"
         className="fixed inset-0 isolate z-50 bg-night/30 duration-150 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
       />
@@ -34,20 +35,24 @@ function ModalContent({ className, children, showCloseButton = true, ...props }:
         )}
         {...props}
       >
-        {children}
+        {/* The window itself scrolls, so the close button rides a sticky zero-height bar: it stays in the corner. */}
         {showCloseButton && (
-          <DialogPrimitive.Close data-slot="modal-close" render={<Button variant="ghost" className="absolute top-3 right-3" size="icon-sm" />}>
-            <XIcon />
-            <span className="sr-only">Закрыть</span>
-          </DialogPrimitive.Close>
+          <div className="sticky top-0 z-20 h-0">
+            <DialogPrimitive.Close data-slot="modal-close" render={<Button variant="close" className="absolute top-3 right-3" size="icon-sm" />}>
+              <XIcon />
+              <span className="sr-only">Закрыть</span>
+            </DialogPrimitive.Close>
+          </div>
         )}
+        {children}
       </DialogPrimitive.Popup>
     </DialogPrimitive.Portal>
   );
 }
 
 function ModalHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="modal-header" className={cn("flex flex-col gap-0.5 p-4", className)} {...props} />;
+  // Stays at the top while the window scrolls, so the title and the close button are always in sight.
+  return <div data-slot="modal-header" className={cn("sticky top-0 z-10 flex flex-col gap-0.5 bg-popover p-4", className)} {...props} />;
 }
 
 function ModalFooter({ className, ...props }: React.ComponentProps<"div">) {
