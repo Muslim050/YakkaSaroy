@@ -350,6 +350,8 @@ export type ClientSummary = {
   nextDate?: string;
   lastDate: string;
   spent: number;
+  /** Everything the client is to pay for banquets that are not cancelled. */
+  total: number;
 };
 
 /** Banquet clients grouped by phone (restaurant walk-ins are left out). */
@@ -365,14 +367,17 @@ export async function listClients(q?: string) {
   const today = todayISO();
   const map = new Map<string, ClientSummary>();
   for (const b of rows) {
-    const c = map.get(b.phoneDigits) ?? { phone: b.phone, name: b.name, bookings: 0, upcoming: 0, lastDate: b.date, spent: 0 };
+    const c = map.get(b.phoneDigits) ?? { phone: b.phone, name: b.name, bookings: 0, upcoming: 0, lastDate: b.date, spent: 0, total: 0 };
     c.bookings++;
     if (b.date >= today && b.status !== "cancelled") {
       c.upcoming++;
       if (!c.nextDate || b.date < c.nextDate) c.nextDate = b.date;
     }
     if (b.date > c.lastDate) c.lastDate = b.date;
-    if (b.status === "done") c.spent += estimateTotal({ hall: b.hall as HallId, guests: b.guests, extras: b.extras ?? undefined }, catalog) ?? 0;
+    const cost = estimateTotal({ hall: b.hall as HallId, guests: b.guests, extras: b.extras ?? undefined }, catalog) ?? 0;
+    // what the client is to pay in all: cancelled banquets are not owed
+    if (b.status !== "cancelled") c.total += cost;
+    if (b.status === "done") c.spent += cost;
     else c.spent += b.prepayment ?? 0;
     map.set(b.phoneDigits, c);
   }

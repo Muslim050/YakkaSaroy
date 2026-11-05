@@ -11,7 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-type Client = { phone: string; name: string; bookings: number; upcoming: number; nextDate?: string; lastDate: string; spent: number };
+type Client = { phone: string; name: string; bookings: number; upcoming: number; nextDate?: string; lastDate: string; spent: number; total: number };
+
+/** How much of everything the client is to pay has come in, 0 to 100. */
+function paidPct(c: Client) {
+  return c.total ? Math.min(100, Math.round((c.spent / c.total) * 100)) : 0;
+}
 
 export function ClientsView({
   clients,
@@ -101,14 +106,24 @@ export function ClientsView({
                       <span className="block text-sm tabular-nums text-muted-foreground">{formatPhone(c.phone)}</span>
                     </span>
                   </span>
-                  <span className="grid grid-cols-2 gap-2">
+                  <span className="grid grid-cols-[4.75rem_minmax(0,1fr)] gap-2">
                     <span className="rounded-lg bg-background px-3 py-2">
                       <span className="block text-[11px] text-muted-foreground">Броней</span>
                       <span className="block text-sm font-medium text-ink tabular-nums">{c.bookings}</span>
                     </span>
                     <span className="rounded-lg bg-background px-3 py-2">
-                      <span className="block text-[11px] text-muted-foreground">Оплачено</span>
+                      <span className="flex items-baseline justify-between gap-2 text-[11px] text-muted-foreground">
+                        <span className="shrink-0">Оплачено</span>
+                        {c.total > 0 && <span className="truncate tabular-nums">из {formatSum(c.total)}</span>}
+                      </span>
                       <span className={cn("block truncate text-sm font-medium tabular-nums", c.spent ? "text-emerald-800" : "text-muted-foreground")}>{c.spent ? formatSum(c.spent) : "—"}</span>
+                      {/* the share of all the client's banquets that is paid */}
+                      {c.total > 0 && (
+                        <span role="img" aria-label={`Оплачено ${paidPct(c)}%`} className="relative mt-1.5 block h-4 overflow-hidden rounded-full bg-secondary">
+                          <span className={cn("absolute inset-y-0 left-0 rounded-full", paidPct(c) >= 100 ? "bg-emerald-500" : "bg-gold")} style={{ width: c.spent ? `${Math.max(paidPct(c), 6)}%` : 0 }} />
+                          <span className="absolute inset-0 grid place-items-center text-[10px] leading-none font-semibold text-ink">{paidPct(c)}%</span>
+                        </span>
+                      )}
                     </span>
                   </span>
                   <span className={cn("flex items-center gap-2 text-sm", c.nextDate ? "text-ink" : "text-muted-foreground")}>
