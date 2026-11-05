@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowUpRight, CalendarCheck, Coins, Gem, Phone, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, CalendarCheck, Coins, Gem, Phone, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { HallCalendar } from "@/components/admin/HallCalendar";
@@ -32,11 +32,10 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/admin">["s
     <>
       <h1 className="sr-only">Обзор</h1>
       <div className="mb-8 rounded-[24px] border border-border bg-[#f6f2ee] p-4 shadow-[0_16px_45px_-30px_rgba(50,38,28,.3)] sm:p-5">
-      <div className="mb-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-7 grid gap-3 sm:grid-cols-3">
         <Kpi icon={CalendarCheck} label="Новые заявки" value={String(o.newRequests.length)} note="ждут звонка" href="/admin/bookings?status=new" alert={o.newRequests.length > 0} />
         <Kpi icon={Gem} label="Торжеств за 30 дней" value={String(o.next30)} note="во всех залах" href="#calendar" />
         <Kpi icon={Coins} label="Предоплаты за 30 дней" value={formatSumShort(o.prepaid30)} note={`из ${formatSumShort(o.expected30)} по банкетному меню`} />
-        <Kpi icon={UtensilsCrossed} label="Столиков сегодня" value={String(o.tablesToday)} note="в ресторане" href="/admin/bookings?kind=restaurant" />
       </div>
 
       <section id="calendar" className="mb-8 scroll-mt-6">
@@ -127,24 +126,6 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/admin">["s
               })}
             </ul>
           </section>
-
-          {o.tastings.length > 0 && (
-            <section className="rounded-xl border border-border bg-card">
-              <header className="border-b border-border px-5 py-4">
-                <h2 className="font-display text-2xl text-night">Дегустации</h2>
-              </header>
-              <ul>
-                {o.tastings.slice(0, 5).map((b) => (
-                  <li key={b.id} className="border-b border-border px-5 py-3 last:border-b-0">
-                    <Link href={open(b)} className="flex items-center justify-between gap-3 text-sm hover:underline">
-                      <span className="truncate">{b.name}, {hallName(b.hall).toLowerCase()}</span>
-                      <span className="shrink-0 tabular-nums text-muted-foreground">{formatDateTime(b.tastingAt!)}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
         </div>
       </div>
     </>

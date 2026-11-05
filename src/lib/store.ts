@@ -232,7 +232,7 @@ export async function updateBooking(id: string, patch: BookingPatch, by: "client
     set.tastingAt = patch.tastingAt || null;
   }
   if (patch.eventType !== undefined && patch.eventType !== b.eventType) {
-    log(`Повод: ${patch.eventType}`);
+    log(`Торжество: ${patch.eventType}`);
     set.eventType = patch.eventType;
   }
   if (patch.comment !== undefined && patch.comment !== (b.comment ?? "")) {
@@ -393,15 +393,9 @@ export async function overview() {
   const in7 = addDaysISO(today, 7);
   const in30 = addDaysISO(today, 30);
 
-  const [newRows, windowRows, tastingRows, [{ n: tablesToday }], catalog] = await Promise.all([
+  const [newRows, windowRows, catalog] = await Promise.all([
     db.select().from(bookings).where(and(isBanquet, eq(bookings.status, "new"))).orderBy(desc(bookings.createdAt)),
     db.select().from(bookings).where(and(isBanquet, active, gte(bookings.date, today), lt(bookings.date, in30))).orderBy(asc(bookings.date), asc(bookings.slot)),
-    db
-      .select()
-      .from(bookings)
-      .where(and(isBanquet, active, isNotNull(bookings.tastingAt), gte(bookings.tastingAt, today), lt(bookings.tastingAt, in7)))
-      .orderBy(asc(bookings.tastingAt)),
-    db.select({ n: count() }).from(bookings).where(and(isTable, active, eq(bookings.date, today))),
     getCatalog(),
   ]);
   const next30 = windowRows.map(toBooking);
@@ -423,9 +417,7 @@ export async function overview() {
     next30: next30.length,
     prepaid30,
     expected30,
-    tastings: tastingRows.map(toBooking),
     occupancy,
-    tablesToday,
   };
 }
 
