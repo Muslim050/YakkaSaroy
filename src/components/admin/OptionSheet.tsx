@@ -6,7 +6,7 @@ import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatSum } from "@/lib/bookings";
 import { EVENT_TYPES } from "@/lib/data";
-import type { Media, Price, ProgramCategory, ProgramOption } from "@/lib/program";
+import type { CategoryId, Media, Price, ProgramCategory, ProgramOption } from "@/lib/program";
 import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import {
   AlertDialog,
@@ -25,6 +25,35 @@ import { api, ErrorNote, Field, Section } from "./fields";
 import { MediaEditor } from "./MediaEditor";
 
 export type OptionTarget = { category: ProgramCategory; option: ProgramOption | null; nextOrder: number };
+
+/** What an empty field suggests, per section: a manager adding a cake should not see a menu as the example. */
+const EXAMPLES: Record<CategoryId, { title: string; description: string; item: string }> = {
+  menu: {
+    title: "Royal Classic — Королевская классика",
+    description: "Классическое свадебное меню с мясными деликатесами, авторскими закусками и фруктовой композицией.",
+    item: "Шашлык ассорти из говядины и баранины",
+  },
+  decor: {
+    title: "Blush Romance — Нежная романтика",
+    description: "Пудровые и кремовые цветы, свечи на столах и арка у сцены для выхода молодых.",
+    item: "Арка из живых цветов у сцены",
+  },
+  show: {
+    title: "Symphony Gala — Симфонический вечер",
+    description: "Живой оркестр встречает гостей, после ужина ведущий и танцевальная программа.",
+    item: "Живой оркестр на встречу гостей",
+  },
+  cake: {
+    title: "Royal Gold — Королевское золото",
+    description: "Трёхъярусный торт с золотым декором и сахарными цветами, начинка на выбор.",
+    item: "Три яруса, ванильный бисквит с ягодами",
+  },
+  photo: {
+    title: "Premium Film — Свадебный фильм",
+    description: "Фотограф и два оператора на весь вечер, клип и полный фильм о торжестве.",
+    item: "Фотограф на весь вечер, 300 фото в обработке",
+  },
+};
 
 const PRICE_ITEMS: Record<Price["type"], string> = {
   included: "Входит в стоимость зала",
@@ -116,10 +145,10 @@ function Body({ target: { category, option, nextOrder }, usage, uploads, onDone 
       <form onSubmit={submit} className="flex flex-1 flex-col">
         <Section title="Что видит гость">
           <Field id="op-title" label="Название">
-            <Input id="op-title" value={form.title} onChange={set("title")} required minLength={2} maxLength={80} placeholder="Например, «Той-дастурхан»" />
+            <Input id="op-title" value={form.title} onChange={set("title")} required minLength={2} maxLength={80} placeholder={EXAMPLES[category.id].title} />
           </Field>
           <Field id="op-desc" label="Описание" hint="Одно-два предложения: чем вариант хорош.">
-            <Textarea id="op-desc" value={form.description} onChange={set("description")} rows={3} maxLength={600} />
+            <Textarea id="op-desc" value={form.description} onChange={set("description")} rows={3} maxLength={600} placeholder={EXAMPLES[category.id].description} />
           </Field>
           <Field label="Что входит">
             <ul className="grid gap-2">
@@ -137,7 +166,7 @@ function Body({ target: { category, option, nextOrder }, usage, uploads, onDone 
                     }}
                     maxLength={140}
                     aria-label={`Пункт ${i + 1}`}
-                    placeholder="Например, «12 салатов и закусок»"
+                    placeholder={EXAMPLES[category.id].item}
                   />
                   <button
                     type="button"

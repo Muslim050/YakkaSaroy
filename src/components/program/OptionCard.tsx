@@ -133,7 +133,7 @@ export function OptionCard({
         </button>
       </div>
 
-      <Lightbox title={o.title} description={o.description} media={o.media} index={box} onIndex={setBox} onClose={() => setBox(null)} />
+      <Lightbox title={o.title} description={o.description} includes={o.includes} price={priceLabel(o)} media={o.media} index={box} onIndex={setBox} onClose={() => setBox(null)} />
     </article>
   );
 }

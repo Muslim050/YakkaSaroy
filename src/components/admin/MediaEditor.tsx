@@ -123,7 +123,7 @@ export function MediaEditor({
           return done();
         }
         if (file.size > UPLOAD_MAX_BYTES) {
-          setOne(key, { error: "Файл больше 500 МБ" });
+          setOne(key, { error: `Файл больше ${Math.round(UPLOAD_MAX_BYTES / 1024 / 1024)} МБ` });
           return done();
         }
         try {
@@ -233,7 +233,7 @@ export function MediaEditor({
           >
             <ImagePlus className="size-4" /> Загрузить фото или видео
           </button>
-          <p className="-mt-1 text-xs text-muted-foreground">JPG, PNG, WebP, MP4, MOV до 500 МБ. Обложку для видео сделаем сами из первой секунды.</p>
+          <p className="-mt-1 text-xs text-muted-foreground">JPG, PNG, WebP, MP4</p>
         </>
       ) : (
         <p className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">

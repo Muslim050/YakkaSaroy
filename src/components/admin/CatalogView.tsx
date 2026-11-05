@@ -14,7 +14,8 @@ import {
 } from "@/lib/program";
 import { EVENT_TYPES } from "@/lib/data";
 import { priceLabel } from "@/components/program/OptionCard";
-import { MediaThumb } from "@/components/program/MediaView";
+import { MediaThumb, MediaView } from "@/components/program/MediaView";
+import { Lightbox } from "@/components/program/Lightbox";
 import { OptionSheet, type OptionTarget } from "./OptionSheet";
 import { api } from "./fields";
 
@@ -111,7 +112,21 @@ function CategorySection({
   onOpen: (optionId: string | null) => void;
 }) {
   const [eventType, setEventType] = useState<string | null>(null);
+  // The thumbnail under the pointer, shown large beside it; and the option whose media is open full screen.
+  const [peek, setPeek] = useState<{ option: ProgramOption; top: number; left: number } | null>(null);
+  const [box, setBox] = useState<{ option: ProgramOption; index: number } | null>(null);
   const all = editable(c);
+
+  function showPeek(option: ProgramOption, el: HTMLElement) {
+    if (!option.media[0]) return;
+    const r = el.getBoundingClientRect();
+    const w = 360;
+    const h = 270;
+    // Beside the thumbnail when there is room, otherwise over the row; never past the window's edges.
+    const left = r.right + 12 + w <= window.innerWidth ? r.right + 12 : Math.max(8, r.left - w - 12);
+    const top = Math.min(Math.max(8, r.top + r.height / 2 - h / 2), window.innerHeight - h - 8);
+    setPeek({ option, top, left });
+  }
   const list = eventType ? forEventType(all, eventType) : all;
   // An occasion with nothing to pick in a required category: guests with that occasion could not choose.
   const empty = c.required
@@ -192,24 +207,38 @@ function CategorySection({
           {list.map((o) => {
             const used = usage[o.id] ?? 0;
             return (
-              <li key={o.id} className="border-b border-border last:border-b-0">
+              <li key={o.id} className="flex items-center gap-4 border-b border-border px-4 py-3 last:border-b-0">
+                {/* the picture: hover shows it large, a click opens every photo and video */}
+                <button
+                  type="button"
+                  disabled={!o.media[0]}
+                  onMouseEnter={(e) => showPeek(o, e.currentTarget)}
+                  onMouseLeave={() => setPeek(null)}
+                  onFocus={(e) => showPeek(o, e.currentTarget)}
+                  onBlur={() => setPeek(null)}
+                  onClick={() => {
+                    setPeek(null);
+                    setBox({ option: o, index: 0 });
+                  }}
+                  aria-label={o.media[0] ? `Смотреть фото: ${o.title}` : `Без фото: ${o.title}`}
+                  className={cn(
+                    "relative h-14 w-20 shrink-0 overflow-hidden rounded-md bg-night transition-shadow",
+                    o.media[0] && "cursor-zoom-in hover:ring-2 hover:ring-gold focus-visible:ring-2 focus-visible:ring-gold",
+                    o.hidden && "opacity-50",
+                  )}
+                >
+                  {o.media[0] ? (
+                    <MediaThumb media={o.media[0]} sizes="80px" />
+                  ) : (
+                    <ImageOff className="absolute inset-0 m-auto size-4 text-ivory/50" />
+                  )}
+                </button>
+                {/* the text: opens the option to edit */}
                 <button
                   type="button"
                   onClick={() => onOpen(o.id)}
-                  className="flex w-full items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-secondary/50"
+                  className="-my-1.5 flex min-w-0 flex-1 items-center gap-4 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-secondary/60"
                 >
-                  <span
-                    className={cn(
-                      "relative h-14 w-20 shrink-0 overflow-hidden rounded-md bg-night",
-                      o.hidden && "opacity-50",
-                    )}
-                  >
-                    {o.media[0] ? (
-                      <MediaThumb media={o.media[0]} sizes="80px" />
-                    ) : (
-                      <ImageOff className="absolute inset-0 m-auto size-4 text-ivory/50" />
-                    )}
-                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-2">
                       <span
@@ -260,6 +289,33 @@ function CategorySection({
         </div>
       )}
       <Removed category={c} />
+
+      {/* the large preview of the hovered picture; it never takes the pointer, so it cannot flicker */}
+      {peek?.option.media[0] && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed z-50 w-[360px] overflow-hidden rounded-xl bg-night shadow-2xl ring-1 ring-black/10 animate-in fade-in-0 zoom-in-95 duration-150"
+          style={{ top: peek.top, left: peek.left }}
+        >
+          <div className="relative h-[230px] w-full">
+            <MediaView media={peek.option.media[0]} sizes="360px" />
+          </div>
+          <p className="flex items-center justify-between gap-3 px-3 py-2 text-sm text-ivory">
+            <span className="truncate">{peek.option.title}</span>
+            <span className="shrink-0 text-xs text-ivory/60">{mediaCount(peek.option)}</span>
+          </p>
+        </div>
+      )}
+      <Lightbox
+        title={box?.option.title ?? ""}
+        description={box?.option.description ?? ""}
+        includes={box?.option.includes}
+        price={box ? priceLabel(box.option) : undefined}
+        media={box?.option.media ?? []}
+        index={box ? box.index : null}
+        onIndex={(i) => setBox((b) => (b ? { ...b, index: i } : b))}
+        onClose={() => setBox(null)}
+      />
     </section>
   );
 }
