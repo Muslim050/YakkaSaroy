@@ -561,7 +561,7 @@ export async function verifyAdmin(login: string, password: string): Promise<Admi
     const b = Buffer.from(envPassword);
     if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
     if (user) return { id: user.id, login: user.login, name: user.name, role: "admin" };
-    const created = { id: "u-admin", login: "admin", name: "Администратор", ...hashPassword(envPassword) };
+    const created = { id: "u-admin", login: "admin", name: "Yakka Saroy", ...hashPassword(envPassword) };
     await db.insert(adminUsers).values(created).onConflictDoNothing();
     return { id: created.id, login: created.login, name: created.name, role: "admin" };
   }

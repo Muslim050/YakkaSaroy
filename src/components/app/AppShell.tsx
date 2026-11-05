@@ -40,9 +40,6 @@ export function AppShell({
             </Suspense>
           )}
           <div className="ml-auto flex items-center gap-1 sm:gap-3">
-            <Link href="/" className="hidden rounded-full px-3 py-2 text-sm text-ivory/55 transition-colors hover:text-ivory sm:block">
-              На сайт
-            </Link>
             <Suspense fallback={<span className="block size-8 animate-spin rounded-full border-2 border-white/10 border-t-gold" aria-hidden />}>{account}</Suspense>
           </div>
         </div>

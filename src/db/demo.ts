@@ -23,7 +23,7 @@ export const DEMO_CLIENTS = [
 
 /** Admin accounts documented in README; the seed creates them only if they are missing. */
 export const DEMO_ADMINS = [
-  { id: "u-admin", login: "admin", name: "Администратор", password: "admin" },
+  { id: "u-admin", login: "admin", name: "Yakka Saroy", password: "admin" },
   { id: "u-manager", login: "manager", name: "Шахноза, менеджер", password: "manager" },
 ];
 
