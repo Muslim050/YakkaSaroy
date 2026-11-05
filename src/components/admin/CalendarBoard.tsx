@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { BookingSheet } from "./BookingSheet";
-import { NewBookingSheet, type NewBookingPreset } from "./NewBookingSheet";
+import { EditBookingSheet, NewBookingSheet, type NewBookingPreset } from "./NewBookingSheet";
 
 const BLOCK: Record<BookingStatus, string> = {
   new: "border-l-amber-500 bg-amber-50 hover:bg-amber-100",
@@ -112,6 +112,7 @@ export function CalendarBoard({
   const fromBoard = openId ? bookings.find((b) => b.id === openId) : undefined;
   const fromSave = saved?.id === openId ? saved : undefined;
   const open = fromBoard && fromSave ? (fromSave.updatedAt > fromBoard.updatedAt ? fromSave : fromBoard) : (fromBoard ?? fromSave ?? null);
+  const inForm = !!open && open.hall !== "restaurant" && open.status !== "cancelled" && open.status !== "done";
 
   const index = new Map<string, Booking[]>();
   for (const b of bookings) index.set(keyOf(b.date, b.hall, b.slot), [...(index.get(keyOf(b.date, b.hall, b.slot)) ?? []), b]);
@@ -590,7 +591,9 @@ export function CalendarBoard({
           setCreating(p);
         }}
       />
-      <BookingSheet booking={open} catalog={catalog} onClose={() => setOpenId(null)} onSaved={setSaved} />
+      {/* An active banquet opens in the same window as a new booking; a restaurant table, a cancelled or a past booking keeps its card. */}
+      <EditBookingSheet booking={inForm ? open : null} catalog={catalog} onClose={() => setOpenId(null)} onSaved={setSaved} />
+      <BookingSheet booking={inForm ? null : open} catalog={catalog} onClose={() => setOpenId(null)} onSaved={setSaved} />
       <NewBookingSheet preset={creating} catalog={catalog} onClose={() => setCreating(null)} />
 
       <AlertDialog open={!!move} onOpenChange={(o) => !o && !moving && setMove(null)}>

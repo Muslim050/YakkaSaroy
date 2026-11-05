@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BookingSheet } from "./BookingSheet";
-import { NewBookingSheet, type NewBookingPreset } from "./NewBookingSheet";
+import { EditBookingSheet, NewBookingSheet, type NewBookingPreset } from "./NewBookingSheet";
 
 type Counts = Record<BookingStatus | "upcoming" | "all", number>;
 type Filter = BookingStatus | "upcoming" | "all";
@@ -64,6 +64,7 @@ export function BookingsView({
   const open = openId
     ? freshest(rows.find((r) => r.id === openId), saved?.id === openId ? saved : null, focus?.id === openId ? focus : null)
     : null;
+  const inForm = !!open && open.hall !== "restaurant" && open.status !== "cancelled" && open.status !== "done";
 
   function go(patch: Record<string, string | null>) {
     const next = new URLSearchParams(params.toString());
@@ -162,7 +163,8 @@ export function BookingsView({
               <TableHead>{isTable ? "Время" : "Зал и время"}</TableHead>
               <TableHead>Клиент</TableHead>
               <TableHead className="text-right">Гостей</TableHead>
-              {!isTable && <TableHead className="text-right">Предоплата</TableHead>}
+              {!isTable && <TableHead>Сумма / предоплата</TableHead>}
+              {!isTable && <TableHead className="text-right">Остаток</TableHead>}
               <TableHead>Статус</TableHead>
               <TableHead className="pr-5 text-right">Бронь</TableHead>
             </TableRow>
@@ -170,6 +172,8 @@ export function BookingsView({
           <TableBody>
             {rows.map((b) => {
               const t = estimateTotal(b, catalog);
+              const paid = b.prepayment ?? 0;
+              const pct = t ? Math.min(100, Math.round((paid / t) * 100)) : 0;
               return (
                 <TableRow
                   key={b.id}
@@ -193,9 +197,29 @@ export function BookingsView({
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{b.guests}</TableCell>
                   {!isTable && (
-                    <TableCell className="whitespace-nowrap text-right tabular-nums">
-                      {b.prepayment ? formatSum(b.prepayment) : <span className="text-muted-foreground">—</span>}
-                      {t ? <span className="block text-xs text-muted-foreground">из {formatSum(t)}</span> : null}
+                    <TableCell className="whitespace-nowrap tabular-nums">
+                      {t ? (
+                        <div className="w-56">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="text-xs text-muted-foreground">{formatSum(t)}</span>
+                            <span className={cn("font-medium", paid ? "text-ink" : "text-muted-foreground")}>{paid ? formatSum(paid) : "—"}</span>
+                          </div>
+                          {/* how much of the banquet is paid: the bar fills with gold, the share is written on it */}
+                          <div role="img" aria-label={`Оплачено ${pct}%`} className="relative mt-1.5 h-5 overflow-hidden rounded-full bg-secondary">
+                            <span className={cn("absolute inset-y-0 left-0 rounded-full", pct >= 100 ? "bg-emerald-500" : "bg-gold")} style={{ width: paid ? `${Math.max(pct, 5)}%` : 0 }} />
+                            <span className="absolute inset-0 grid place-items-center text-[11px] font-semibold text-ink">{pct}%</span>
+                          </div>
+                        </div>
+                      ) : paid ? (
+                        formatSum(paid)
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  )}
+                  {!isTable && (
+                    <TableCell className="whitespace-nowrap text-right font-medium tabular-nums">
+                      {t ? formatSum(Math.max(0, t - paid)) : <span className="font-normal text-muted-foreground">—</span>}
                     </TableCell>
                   )}
                   <TableCell>
@@ -207,7 +231,7 @@ export function BookingsView({
             })}
             {!rows.length && (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={7} className="py-14 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="py-14 text-center text-muted-foreground">
                   Под эти условия броней нет. Сбросьте поиск или выберите другой статус.
                 </TableCell>
               </TableRow>
@@ -230,7 +254,9 @@ export function BookingsView({
         </div>
       </div>
 
-      <BookingSheet booking={open} catalog={catalog} onClose={() => setOpenId(null)} onSaved={setSaved} />
+      {/* An active banquet opens in the same window as a new booking; a restaurant table, a cancelled or a past booking keeps its card. */}
+      <EditBookingSheet booking={inForm ? open : null} catalog={catalog} onClose={() => setOpenId(null)} onSaved={setSaved} />
+      <BookingSheet booking={inForm ? null : open} catalog={catalog} onClose={() => setOpenId(null)} onSaved={setSaved} />
       <NewBookingSheet preset={creating} catalog={catalog} onClose={() => setCreating(null)} />
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Armchair, CalendarDays, Clock, Flag, History, Phone, Sparkles, StickyNote, UserRound, Users, Wallet } from "lucide-react";
+import { Armchair, Banknote, CalendarDays, CircleCheckBig, Clock, Flag, Hourglass, MessageSquareText, PartyPopper, Phone, Receipt, StickyNote, Sunrise, UserRound, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EVENT_TYPES, HALLS, MORNING_WINDOWS } from "@/lib/data";
 import { estimateTotal, formatDateTime, formatDay, formatSum, hallName, slotLabel, STATUS, type Booking, type BookingStatus } from "@/lib/bookings";
@@ -23,29 +23,77 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api, ErrorNote, Field, Section } from "./fields";
+import { api, ErrorNote } from "./fields";
 
 const STATUS_DOT: Record<BookingStatus, string> = { new: "bg-amber-500", confirmed: "bg-sky-500", prepaid: "bg-emerald-600", done: "bg-stone-400", cancelled: "bg-rose-500" };
-const STATUS_HINT: Record<BookingStatus, string> = {
-  new: "Заявка ждёт звонка менеджера.",
-  confirmed: "Дата придержана за клиентом, до предоплаты её могут занять другие.",
-  prepaid: "Предоплата получена, дата закреплена.",
-  done: "Торжество прошло.",
-  cancelled: "Бронь отменена.",
-};
 
-/** One fact in the booking's header: an icon, a label and the value. */
-function Fact({ icon: Icon, label, value }: { icon: typeof Armchair; label: string; value: string }) {
+const CHIP = "grid size-8 shrink-0 place-items-center rounded-lg bg-secondary text-gold-dim";
+const TILE = "flex min-w-0 gap-2.5 rounded-xl border border-border bg-background px-3 py-2";
+/** A field inside a tile has no frame of its own: the tile is the frame. */
+const BARE = "h-6 rounded-none border-0 bg-transparent p-0 text-sm font-medium text-ink focus-visible:border-0 focus-visible:ring-0 md:text-sm";
+
+/** One fact about the booking: an icon, a label and the value. */
+function Fact({ icon: Icon, label, value, valueClassName }: { icon: typeof Armchair; label: string; value: string; valueClassName?: string }) {
   return (
-    <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border bg-background px-3 py-2">
-      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-secondary text-gold-dim">
+    <div className={cn(TILE, "items-center")}>
+      <span className={CHIP}>
         <Icon className="size-4" />
       </span>
       <span className="min-w-0">
         <dt className="text-[11px] text-muted-foreground">{label}</dt>
-        <dd className="truncate text-sm font-medium text-ink">{value}</dd>
+        <dd className={cn("truncate text-sm font-medium text-ink tabular-nums", valueClassName)}>{value}</dd>
       </span>
     </div>
+  );
+}
+
+/** The same tile, but the value is a field to edit. `chip` replaces the icon, `top` is for tall fields. */
+function Tile({
+  icon: Icon,
+  label,
+  htmlFor,
+  hint,
+  chip,
+  top,
+  className,
+  children,
+}: {
+  icon: typeof Armchair;
+  label: string;
+  htmlFor?: string;
+  hint?: string;
+  chip?: React.ReactNode;
+  top?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn(TILE, "transition-shadow focus-within:border-gold focus-within:ring-2 focus-within:ring-gold/25", top ? "items-start" : "items-center", className)}>
+      {chip ?? (
+        <span className={CHIP}>
+          <Icon className="size-4" />
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <label htmlFor={htmlFor} className="shrink-0 text-[11px] text-muted-foreground">
+            {label}
+          </label>
+          {hint && <span className="truncate text-[11px] text-muted-foreground/80">{hint}</span>}
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** A few tiles under one small heading. */
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="grid gap-2">
+      <h3 className="text-[11px] font-medium tracking-[0.12em] text-muted-foreground uppercase">{title}</h3>
+      {children}
+    </section>
   );
 }
 
@@ -63,7 +111,7 @@ export function BookingSheet({
 }) {
   return (
     <Modal open={!!booking} onOpenChange={(o) => !o && onClose()}>
-      <ModalContent className="w-full gap-0 p-0 sm:max-w-3xl">
+      <ModalContent className="w-full gap-0 bg-card p-0 sm:max-w-3xl">
         {booking && <Body key={`${booking.id}-${booking.updatedAt}`} booking={booking} catalog={catalog} onSaved={onSaved} />}
       </ModalContent>
     </Modal>
@@ -82,7 +130,6 @@ function Body({ booking: b, catalog, onSaved }: { booking: Booking; catalog: Cat
     eventType: b.eventType ?? "",
     comment: b.comment ?? "",
     prepayment: b.prepayment ? String(b.prepayment) : "",
-    tastingAt: b.tastingAt ?? "",
     startTime: b.startTime ?? "",
     managerNote: b.managerNote ?? "",
     status: b.status,
@@ -108,7 +155,6 @@ function Body({ booking: b, catalog, onSaved }: { booking: Booking; catalog: Cat
     if (form.eventType && form.eventType !== (b.eventType ?? "")) p.eventType = form.eventType;
     if (form.comment !== (b.comment ?? "")) p.comment = form.comment;
     if (prepayment !== (b.prepayment ?? 0)) p.prepayment = prepayment;
-    if (form.tastingAt !== (b.tastingAt ?? "")) p.tastingAt = form.tastingAt;
     if (form.startTime !== (b.startTime ?? "")) p.startTime = form.startTime;
     if (form.managerNote !== (b.managerNote ?? "")) p.managerNote = form.managerNote;
     if (form.status !== b.status) p.status = form.status;
@@ -165,155 +211,142 @@ function Body({ booking: b, catalog, onSaved }: { booking: Booking; catalog: Cat
           void save();
         }}
       >
-        <Section title="Статус" icon={Flag}>
-          {b.status === "cancelled" ? (
-            <div className="flex flex-wrap items-center gap-3 text-sm">
-              <StatusBadge status="cancelled" />
-              <span className="text-muted-foreground">Время свободно для других. Бронь можно вернуть, если его ещё не заняли.</span>
-              <button type="button" disabled={busy} onClick={() => void save({ status: "new" })} className="h-9 rounded-lg border border-border px-3 text-sm font-medium hover:bg-secondary disabled:opacity-50">
-                Восстановить бронь
-              </button>
+        <div className="grid gap-5 p-4 sm:p-5">
+          <Group title="Клиент и статус">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Tile icon={Flag} label="Статус">
+                {b.status === "cancelled" ? (
+                  <div className="flex h-6 items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-rose-800">Отменена</span>
+                    <button type="button" disabled={busy} onClick={() => void save({ status: "new" })} className="text-xs font-medium text-night underline underline-offset-2 disabled:opacity-50">
+                      Восстановить
+                    </button>
+                  </div>
+                ) : (
+                  <Select items={statusItems} value={form.status} onValueChange={(v) => v && setForm((f) => ({ ...f, status: v as BookingStatus }))}>
+                    <SelectTrigger aria-label="Статус" className={cn(BARE, "h-6! w-full")}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {statuses.map((st) => (
+                        <SelectItem key={st} value={st}>
+                          <span className="flex items-center gap-2">
+                            <span className={cn("size-2 rounded-full", STATUS_DOT[st])} />
+                            {STATUS[st].label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </Tile>
+              <Tile icon={UserRound} label="Имя" htmlFor="bs-name">
+                <Input id="bs-name" value={form.name} onChange={set("name")} className={BARE} />
+              </Tile>
+              <Tile
+                icon={Phone}
+                label="Телефон"
+                htmlFor="bs-phone"
+                chip={
+                  <a href={`tel:${b.phone.replace(/[^\d+]/g, "")}`} aria-label="Позвонить" title="Позвонить" className={cn(CHIP, "transition-colors hover:bg-gold/25 hover:text-night")}>
+                    <Phone className="size-4" />
+                  </a>
+                }
+              >
+                <Input id="bs-phone" type="tel" value={form.phone} onChange={set("phone")} className={BARE} />
+              </Tile>
             </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-[16rem_1fr] sm:items-end">
-              <Field label="Стадия брони">
-                <Select items={statusItems} value={form.status} onValueChange={(v) => v && setForm((f) => ({ ...f, status: v as BookingStatus }))}>
-                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {statuses.map((st) => (
-                      <SelectItem key={st} value={st}>
-                        <span className="flex items-center gap-2">
-                          <span className={cn("size-2 rounded-full", STATUS_DOT[st])} />
-                          {STATUS[st].label}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <p className="text-xs text-muted-foreground">{STATUS_HINT[form.status]}</p>
+            {b.status === "cancelled" && <p className="text-xs text-muted-foreground">Время свободно для других. Бронь можно вернуть, если его ещё не заняли.</p>}
+          </Group>
+
+          <Group title={isTable ? "Столик" : "Торжество"}>
+            <div className={cn("grid gap-2", !isTable && (b.slot === "day" ? "sm:grid-cols-3" : "sm:grid-cols-2"))}>
+              <Tile icon={Users} label="Количество гостей" htmlFor="bs-guests" hint={isTable ? `до ${max}` : b.slot === "day" ? undefined : `зал на ${HALLS.find((h) => h.id === b.hall)?.seats}`}>
+                <Input id="bs-guests" type="number" min={1} max={isTable ? max : undefined} value={form.guests} onChange={set("guests")} className={BARE} />
+              </Tile>
+              {!isTable && (
+                <Tile icon={PartyPopper} label="Торжество">
+                  <Select value={form.eventType || null} onValueChange={(v) => { setForm((f) => ({ ...f, eventType: String(v ?? "") })); setSaved(false); }}>
+                    <SelectTrigger aria-label="Торжество" className={cn(BARE, "h-6! w-full")}><SelectValue placeholder="Не указано" /></SelectTrigger>
+                    <SelectContent>
+                      {EVENT_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Tile>
+              )}
+              {b.slot === "day" && (
+                <Tile icon={Sunrise} label="Утреннее окно">
+                  <div role="group" aria-label="Утреннее окно" className="mt-0.5 flex gap-1">
+                    {MORNING_WINDOWS.map((w) => {
+                      const on = form.startTime === w.id;
+                      return (
+                        <button
+                          key={w.id}
+                          type="button"
+                          aria-pressed={on}
+                          aria-label={w.label}
+                          onClick={() => { setForm((f) => ({ ...f, startTime: w.id })); setSaved(false); }}
+                          className={cn("h-6 flex-1 rounded-md border text-xs tabular-nums transition-colors", on ? "border-gold bg-gold/20 font-medium text-night" : "border-border bg-card hover:border-gold")}
+                        >
+                          {w.short}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Tile>
+              )}
             </div>
+            <Tile top icon={MessageSquareText} label="Пожелания клиента" htmlFor="bs-comment">
+              <Textarea id="bs-comment" rows={2} value={form.comment} onChange={set("comment")} placeholder="Не указаны" className={cn(BARE, "h-auto min-h-10 py-0.5")} />
+            </Tile>
+          </Group>
+
+          {!isTable && (
+            <Group title="Программа торжества">
+              <ProgramSummary catalog={catalog} extras={b.extras} href={`/admin/bookings/${b.id}/program`} cta="Открыть программу с фото и видео" />
+            </Group>
           )}
-        </Section>
 
-        <Section title="Клиент" icon={UserRound}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="bs-name" label="Имя">
-              <Input id="bs-name" value={form.name} onChange={set("name")} />
-            </Field>
-            <Field id="bs-phone" label="Телефон">
-              <div className="flex gap-2">
-                <Input id="bs-phone" type="tel" value={form.phone} onChange={set("phone")} />
-                <a href={`tel:${b.phone.replace(/[^\d+]/g, "")}`} aria-label="Позвонить" className="grid size-8 shrink-0 place-items-center rounded-lg border border-border hover:bg-secondary">
-                  <Phone className="size-4" />
-                </a>
-              </div>
-            </Field>
-          </div>
-        </Section>
-
-        <Section title={isTable ? "Столик" : "Торжество"} icon={Sparkles}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {b.slot === "day" && (
-              <Field label="Утреннее окно" hint="Утром в зале три окна по часу, в каждом одно торжество">
-                <div role="group" aria-label="Утреннее окно" className="flex flex-wrap gap-1.5">
-                  {MORNING_WINDOWS.map((w) => {
-                    const on = form.startTime === w.id;
-                    return (
-                      <button
-                        key={w.id}
-                        type="button"
-                        aria-pressed={on}
-                        onClick={() => { setForm((f) => ({ ...f, startTime: w.id })); setSaved(false); }}
-                        className={cn("h-8 rounded-lg border px-2.5 text-sm tabular-nums transition-colors", on ? "border-gold bg-gold/15 text-night" : "border-border hover:border-gold")}
-                      >
-                        {w.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Field>
-            )}
-            <Field id="bs-guests" label="Гостей" hint={isTable ? `За столик до ${max}` : `Зал рассчитан на ${HALLS.find((h) => h.id === b.hall)?.seats}`}>
-              <Input id="bs-guests" type="number" min={1} max={isTable ? max : undefined} value={form.guests} onChange={set("guests")} />
-            </Field>
-            {!isTable && (
-              <Field label="Повод">
-                <Select value={form.eventType || null} onValueChange={(v) => { setForm((f) => ({ ...f, eventType: String(v ?? "") })); setSaved(false); }}>
-                  <SelectTrigger className="w-full"><SelectValue placeholder="Не указан" /></SelectTrigger>
-                  <SelectContent>
-                    {EVENT_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
-          </div>
-          <Field id="bs-comment" label="Пожелания клиента">
-            <Textarea id="bs-comment" rows={3} value={form.comment} onChange={set("comment")} />
-          </Field>
-        </Section>
-
-        {!isTable && (
-          <Section title="Программа торжества" icon={Sparkles}>
-            <ProgramSummary catalog={catalog} extras={b.extras} href={`/admin/bookings/${b.id}/program`} cta="Открыть программу с фото и видео" />
-          </Section>
-        )}
-
-        {!isTable && (
-          <Section title="Оплата и дегустация" icon={Wallet}>
-            <div className="rounded-xl border border-border bg-card p-4">
-              <dl className="grid grid-cols-3 gap-3 text-sm">
-                <div>
-                  <dt className="text-xs text-muted-foreground">По программе</dt>
-                  <dd className="mt-1 font-display text-xl leading-none text-night tabular-nums">{total ? formatSum(total) : "—"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">Внесено</dt>
-                  <dd className="mt-1 font-display text-xl leading-none text-emerald-800 tabular-nums">{prepayment ? formatSum(prepayment) : "—"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">Остаток</dt>
-                  <dd className="mt-1 font-display text-xl leading-none text-night tabular-nums">{total ? formatSum(Math.max(0, total - prepayment)) : "—"}</dd>
-                </div>
+          {!isTable && (
+            <Group title="Оплата">
+              <dl className="grid gap-2 sm:grid-cols-3">
+                <Fact icon={Receipt} label="По программе" value={total ? formatSum(total) : "—"} />
+                <Fact icon={CircleCheckBig} label={paidPct !== null && prepayment ? `Внесено, ${paidPct}%` : "Внесено"} value={prepayment ? formatSum(prepayment) : "—"} valueClassName="text-emerald-800" />
+                <Fact icon={Hourglass} label="Остаток" value={total ? formatSum(Math.max(0, total - prepayment)) : "—"} />
               </dl>
               {paidPct !== null && (
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary" role="img" aria-label={`Оплачено ${paidPct}%`}>
+                <div className="h-1.5 overflow-hidden rounded-full bg-secondary" role="img" aria-label={`Оплачено ${paidPct}%`}>
                   <div className="h-full rounded-full bg-emerald-600" style={{ width: `${paidPct}%` }} />
                 </div>
               )}
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field id="bs-prepay" label="Предоплата, сум" hint={total ? `30% это ${formatSum(Math.round((total * 0.3) / 1_000_000) * 1_000_000)}` : undefined}>
-                <Input id="bs-prepay" type="number" min={0} step={100000} inputMode="numeric" value={form.prepayment} onChange={set("prepayment")} />
-              </Field>
-              <Field id="bs-tasting" label="Дегустация">
-                <Input id="bs-tasting" type="datetime-local" value={form.tastingAt} onChange={set("tastingAt")} />
-              </Field>
-            </div>
-          </Section>
-        )}
+              <Tile icon={Banknote} label="Предоплата, сум" htmlFor="bs-prepay" hint={total ? `30% — ${formatSum(Math.round((total * 0.3) / 1_000_000) * 1_000_000)}` : undefined}>
+                <Input id="bs-prepay" type="number" min={0} step={100000} inputMode="numeric" value={form.prepayment} onChange={set("prepayment")} placeholder="Не внесена" className={BARE} />
+              </Tile>
+            </Group>
+          )}
 
-        <Section title="Заметка для команды" icon={StickyNote}>
-          <Textarea aria-label="Заметка для команды" rows={3} value={form.managerNote} onChange={set("managerNote")} placeholder="Клиент её не видит" />
-        </Section>
+          <Group title="Заметка для команды">
+            <Tile top icon={StickyNote} label="Клиент её не видит" htmlFor="bs-note">
+              <Textarea id="bs-note" rows={2} value={form.managerNote} onChange={set("managerNote")} placeholder="Например, перезвонить после шести" className={cn(BARE, "h-auto min-h-10 py-0.5")} />
+            </Tile>
+          </Group>
 
-        <Section title="История" icon={History} className="border-b-0">
-          <ol className="relative ml-1.5 grid gap-3 border-l border-border pl-5 text-sm">
-            {[...b.history].reverse().map((h, i) => (
-              <li key={i} className="relative">
-                <span className={cn("absolute top-1.5 -left-[25px] size-2.5 rounded-full ring-4 ring-popover", i === 0 ? "bg-gold" : "bg-border")} />
-                <span className="block text-ink">{h.text}</span>
-                <span className="block text-xs text-muted-foreground tabular-nums">
-                  {formatDateTime(h.at)} · {h.by === "admin" ? "менеджер" : h.by === "client" ? "клиент" : "система"}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </Section>
+          <Group title="История">
+            <ol className="relative mt-1 ml-1.5 grid gap-3 border-l border-border pl-5 text-sm">
+              {[...b.history].reverse().map((h, i) => (
+                <li key={i} className="relative">
+                  <span className={cn("absolute top-1.5 -left-[25px] size-2.5 rounded-full ring-4 ring-card", i === 0 ? "bg-gold" : "bg-border")} />
+                  <span className="block text-ink">{h.text}</span>
+                  <span className="block text-xs text-muted-foreground tabular-nums">
+                    {formatDateTime(h.at)} · {h.by === "admin" ? "менеджер" : h.by === "client" ? "клиент" : "система"}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </Group>
+        </div>
 
-        <div className="sticky bottom-0 mt-auto grid gap-3 border-t border-border bg-popover px-6 py-4">
+        <div className="sticky bottom-0 mt-auto grid gap-3 border-t border-border bg-card px-6 py-4">
           <ErrorNote error={error} />
           <div className="flex flex-wrap items-center gap-2">
             <button type="submit" disabled={busy || !dirty} className="h-10 rounded-xl brand-action px-5 text-sm font-semibold disabled:opacity-50">
