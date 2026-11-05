@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { ChevronLeft, ChevronRight, Phone, Search } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, LayoutGrid, List, Phone, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDay, formatPhone, formatSum, hallName, phoneDigits, slotLabel, type Booking } from "@/lib/bookings";
 import { StatusBadge } from "@/components/app/StatusBadge";
@@ -33,6 +33,7 @@ export function ClientsView({
   const [pending, start] = useTransition();
   const [q, setQ] = useState(initialQ);
   const [open, setOpen] = useState<Client | null>(null);
+  const [view, setView] = useState<"grid" | "table">("grid");
 
   const go = (next: { q?: string; page?: number }) => {
     const p = new URLSearchParams();
@@ -54,11 +55,75 @@ export function ClientsView({
 
   return (
     <div className={cn("transition-opacity", pending && "opacity-60")}>
-      <div className="relative mb-4 max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Имя или телефон" aria-label="Поиск клиента" className="h-10 bg-card pl-9" />
+      <div className="mb-4 flex items-center gap-3">
+        <div className="relative w-full max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Имя или телефон" aria-label="Поиск клиента" className="h-10 bg-card pl-9" />
+        </div>
+        <div role="group" aria-label="Вид списка" className="ml-auto flex shrink-0 gap-1 rounded-lg border border-border bg-card p-1">
+          {(
+            [
+              { id: "grid", label: "Карточками", icon: LayoutGrid },
+              { id: "table", label: "Таблицей", icon: List },
+            ] as const
+          ).map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              aria-label={label}
+              title={label}
+              aria-pressed={view === id}
+              onClick={() => setView(id)}
+              className={cn("grid size-8 place-items-center rounded-md transition-colors", view === id ? "bg-night text-ivory" : "text-muted-foreground hover:bg-secondary hover:text-ink")}
+            >
+              <Icon className="size-4" />
+            </button>
+          ))}
+        </div>
       </div>
 
+      {view === "grid" && (
+        <>
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {clients.map((c) => (
+              <li key={c.phone}>
+                <button
+                  type="button"
+                  onClick={() => setOpen(c)}
+                  className="grid h-full w-full gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:border-gold hover:shadow-sm focus-visible:border-gold focus-visible:ring-2 focus-visible:ring-gold/30 focus-visible:outline-none"
+                >
+                  <span className="flex items-center gap-3">
+                    <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary font-display text-xl text-gold-dim uppercase">
+                      {c.name.trim().charAt(0) || "?"}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-ink">{c.name}</span>
+                      <span className="block text-sm tabular-nums text-muted-foreground">{formatPhone(c.phone)}</span>
+                    </span>
+                  </span>
+                  <span className="grid grid-cols-2 gap-2">
+                    <span className="rounded-lg bg-background px-3 py-2">
+                      <span className="block text-[11px] text-muted-foreground">Броней</span>
+                      <span className="block text-sm font-medium text-ink tabular-nums">{c.bookings}</span>
+                    </span>
+                    <span className="rounded-lg bg-background px-3 py-2">
+                      <span className="block text-[11px] text-muted-foreground">Оплачено</span>
+                      <span className={cn("block truncate text-sm font-medium tabular-nums", c.spent ? "text-emerald-800" : "text-muted-foreground")}>{c.spent ? formatSum(c.spent) : "—"}</span>
+                    </span>
+                  </span>
+                  <span className={cn("flex items-center gap-2 text-sm", c.nextDate ? "text-ink" : "text-muted-foreground")}>
+                    <CalendarDays className="size-4 shrink-0 text-gold-dim" />
+                    {c.nextDate ? `Торжество ${formatDay(c.nextDate, true)}` : "Торжеств впереди нет"}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {!clients.length && <p className="rounded-xl border border-border bg-card py-14 text-center text-muted-foreground">Никого не нашли. Проверьте имя или последние цифры телефона.</p>}
+        </>
+      )}
+
+      {view === "table" && (
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         <Table>
           <TableHeader>
@@ -94,6 +159,7 @@ export function ClientsView({
           </TableBody>
         </Table>
       </div>
+      )}
 
       <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
         <span className="tabular-nums">{total ? `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} из ${total}` : "0"}</span>
