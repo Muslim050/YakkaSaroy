@@ -2,7 +2,7 @@ import "server-only";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { and, asc, count, desc, eq, gte, ilike, isNotNull, like, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import { getDb, getSql } from "@/db";
-import { adminUsers, bookings, programOptions } from "@/db/schema";
+import { adminUsers, bookingPayments, bookings, programOptions } from "@/db/schema";
 import { toRow } from "@/db/rows";
 import { HALLS, RESTAURANT_HOURS, RESTAURANT_TABLES, SLOTS, slotCapacity, type BanquetHallId, type HallId, type SlotId } from "./data";
 
@@ -10,7 +10,7 @@ const BANQUET_HALLS = HALLS.filter((h) => h.id !== "restaurant");
 import type { DayAvailability } from "./availability";
 import { describeChange, offered, type Catalog, type CategoryId, type ProgramOption, type ProgramSelection } from "./program";
 import { programCategories, seedCatalog } from "./programSeed";
-import { STATUS, estimateTotal, formatDay, formatSum, hallName, phoneDigits, slotLabel, type Booking, type BookingStatus, type HistoryEntry } from "./bookings";
+import { STATUS, estimateTotal, formatDay, formatSum, hallName, phoneDigits, slotLabel, type Booking, type BookingStatus, type HistoryEntry, type Payment, type PaymentInput } from "./bookings";
 import { checkPassword, hashPassword } from "./password";
 import { addDaysISO, todayISO } from "./time";
 
@@ -82,6 +82,8 @@ function toBooking(r: Row): Booking {
 const active = ne(bookings.status, "cancelled");
 const isBanquet = ne(bookings.hall, "restaurant");
 const isTable = eq(bookings.hall, "restaurant");
+/** month: "YYYY-MM" */
+const inMonth = (month: string) => like(sql`${bookings.date}::text`, `${month}-%`);
 
 /* ----------------------------------------------------------- availability */
 
@@ -187,7 +189,7 @@ export async function getBooking(id: string) {
 }
 
 export type BookingPatch = Partial<
-  Pick<Booking, "status" | "guests" | "eventType" | "comment" | "prepayment" | "tastingAt" | "managerNote" | "name" | "phone" | "hall" | "date" | "slot" | "startTime">
+  Pick<Booking, "status" | "guests" | "eventType" | "comment" | "tastingAt" | "managerNote" | "name" | "phone" | "hall" | "date" | "slot" | "startTime">
 > & {
   extras?: ProgramSelection;
 };
@@ -222,10 +224,6 @@ export async function updateBooking(id: string, patch: BookingPatch, by: "client
   if (patch.guests !== undefined && patch.guests !== b.guests) {
     log(`Гостей: ${b.guests} → ${patch.guests}`);
     set.guests = patch.guests;
-  }
-  if (patch.prepayment !== undefined && patch.prepayment !== (b.prepayment ?? 0)) {
-    log(patch.prepayment ? `Предоплата: ${formatSum(patch.prepayment)}` : "Предоплата обнулена");
-    set.prepayment = patch.prepayment || null;
   }
   if (patch.tastingAt !== undefined && patch.tastingAt !== (b.tastingAt ?? "")) {
     log(patch.tastingAt ? "Назначена дегустация" : "Дегустация отменена");
@@ -272,6 +270,8 @@ export type BookingQuery = {
   kind?: "halls" | "restaurant";
   status?: BookingStatus | "upcoming" | "all";
   hall?: HallId;
+  /** "YYYY-MM"; left out, every month */
+  month?: string;
   q?: string;
   page?: number;
   pageSize?: number;
@@ -282,6 +282,7 @@ export async function listBookings(query: BookingQuery) {
   const today = todayISO();
   const conds: SQL[] = [query.kind === "restaurant" ? isTable : isBanquet];
   if (query.hall) conds.push(eq(bookings.hall, query.hall));
+  if (query.month) conds.push(inMonth(query.month));
   const status = query.status ?? "upcoming";
   if (status === "upcoming") conds.push(gte(bookings.date, today), active);
   else if (status !== "all") conds.push(eq(bookings.status, status));
@@ -308,9 +309,9 @@ export async function listBookings(query: BookingQuery) {
   return { rows: rows.map(toBooking), total, page, pageSize };
 }
 
-export async function countByStatus(kind: "halls" | "restaurant") {
+export async function countByStatus(kind: "halls" | "restaurant", month?: string) {
   const db = getDb();
-  const kindCond = kind === "restaurant" ? isTable : isBanquet;
+  const kindCond = month ? and(kind === "restaurant" ? isTable : isBanquet, inMonth(month)) : kind === "restaurant" ? isTable : isBanquet;
   const counts: Record<BookingStatus | "upcoming" | "all", number> = { upcoming: 0, all: 0, new: 0, confirmed: 0, prepaid: 0, done: 0, cancelled: 0 };
   const [byStatus, [{ n: upcoming }]] = await Promise.all([
     db.select({ status: bookings.status, n: count() }).from(bookings).where(kindCond).groupBy(bookings.status),
@@ -324,12 +325,117 @@ export async function countByStatus(kind: "halls" | "restaurant") {
   return counts;
 }
 
+/**
+ * The figures above the bookings list: banquets that are not cancelled, by the date of the
+ * event. What is left to pay is counted banquet by banquet, so an overpaid one hides no debt.
+ */
+export async function bookingStats(catalog: Catalog, month?: string, hall?: HallId) {
+  const conds = [isBanquet, active];
+  if (month) conds.push(inMonth(month));
+  if (hall) conds.push(eq(bookings.hall, hall));
+  const rows = await getDb()
+    .select({ hall: bookings.hall, guests: bookings.guests, extras: bookings.extras, prepayment: bookings.prepayment })
+    .from(bookings)
+    .where(and(...conds));
+  const stats = { events: rows.length, total: 0, prepaid: 0, remaining: 0 };
+  for (const r of rows) {
+    const cost = estimateTotal({ hall: r.hall as HallId, guests: r.guests, extras: r.extras ?? undefined }, catalog) ?? 0;
+    const paid = r.prepayment ?? 0;
+    stats.total += cost;
+    stats.prepaid += paid;
+    stats.remaining += Math.max(0, cost - paid);
+  }
+  return stats;
+}
+
+/* --------------------------------------------------------------- payments */
+
+/**
+ * A prepayment recorded before payments were kept one by one (or by the demo seed) becomes the
+ * first line of the history, so recounting the sum never loses it. Does nothing the second time.
+ */
+function openingPayment(bookingId: string) {
+  return getSql()`insert into booking_payments (id, booking_id, amount, paid_at, comment)
+    select b.id || '-opening', b.id, b.prepayment, to_char(b.updated_at at time zone 'Asia/Tashkent', 'YYYY-MM-DD"T"HH24:MI'), 'Внесено ранее'
+    from bookings b
+    where b.id = ${bookingId} and coalesce(b.prepayment, 0) > 0
+      and not exists (select 1 from booking_payments p where p.booking_id = b.id)
+    on conflict (id) do nothing`;
+}
+
+/** Recounts what was paid and notes the change in the booking's history. */
+function recountPaid(bookingId: string, text: string) {
+  const line: HistoryEntry = { at: new Date().toISOString(), by: "admin", text };
+  return getSql()`update bookings
+    set prepayment = (select nullif(coalesce(sum(amount), 0), 0)::bigint from booking_payments where booking_id = ${bookingId}),
+        history = history || ${JSON.stringify([line])}::jsonb,
+        updated_at = now()
+    where id = ${bookingId}`;
+}
+
+export async function listPayments(bookingId: string): Promise<Payment[]> {
+  await openingPayment(bookingId);
+  const rows = await getDb()
+    .select()
+    .from(bookingPayments)
+    .where(eq(bookingPayments.bookingId, bookingId))
+    .orderBy(asc(bookingPayments.paidAt), asc(bookingPayments.createdAt));
+  return rows.map((r) => ({ id: r.id, amount: r.amount, paidAt: r.paidAt, comment: r.comment ?? undefined }));
+}
+
+async function paymentsState(bookingId: string) {
+  const [booking, payments] = await Promise.all([getBooking(bookingId), listPayments(bookingId)]);
+  return { booking, payments };
+}
+
+async function findPayment(bookingId: string, id: string) {
+  const [row] = await getDb()
+    .select()
+    .from(bookingPayments)
+    .where(and(eq(bookingPayments.id, id), eq(bookingPayments.bookingId, bookingId)))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function addPayment(bookingId: string, input: PaymentInput) {
+  const q = getSql();
+  const id = `p-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`;
+  await q.transaction([
+    openingPayment(bookingId),
+    q`insert into booking_payments (id, booking_id, amount, paid_at, comment) values (${id}, ${bookingId}, ${input.amount}, ${input.paidAt}, ${input.comment ?? null})`,
+    recountPaid(bookingId, `Поступление: ${formatSum(input.amount)}`),
+  ]);
+  return paymentsState(bookingId);
+}
+
+export async function updatePayment(bookingId: string, id: string, input: PaymentInput) {
+  const was = await findPayment(bookingId, id);
+  if (!was) return null;
+  const q = getSql();
+  await q.transaction([
+    q`update booking_payments set amount = ${input.amount}, paid_at = ${input.paidAt}, comment = ${input.comment ?? null} where id = ${id}`,
+    recountPaid(bookingId, was.amount === input.amount ? `Поступление изменено: ${formatSum(input.amount)}` : `Поступление изменено: ${formatSum(was.amount)} → ${formatSum(input.amount)}`),
+  ]);
+  return paymentsState(bookingId);
+}
+
+export async function removePayment(bookingId: string, id: string) {
+  const was = await findPayment(bookingId, id);
+  if (!was) return null;
+  const q = getSql();
+  await q.transaction([
+    q`delete from booking_payments where id = ${id}`,
+    recountPaid(bookingId, `Поступление удалено: ${formatSum(was.amount)}`),
+  ]);
+  return paymentsState(bookingId);
+}
+
 /** Banquet bookings of one month for the admin calendar. */
 export async function hallBookingsForMonth(month: string) {
   const rows = await getDb()
     .select()
     .from(bookings)
-    .where(and(isBanquet, active, like(sql`${bookings.date}::text`, `${month}-%`)));
+    .where(and(isBanquet, active, inMonth(month)));
   return rows.map(toBooking);
 }
 

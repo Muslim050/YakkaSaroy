@@ -46,11 +46,6 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/admin/
     if (err) return NextResponse.json({ error: err }, { status: 400 });
     patch.guests = Number(body.guests);
   }
-  if (body.prepayment !== undefined) {
-    const n = Number(body.prepayment);
-    if (!Number.isFinite(n) || n < 0) return NextResponse.json({ error: "Сумма предоплаты должна быть числом" }, { status: 400 });
-    patch.prepayment = Math.round(n);
-  }
   if (body.tastingAt !== undefined) {
     const t = String(body.tastingAt);
     if (t && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(t)) return NextResponse.json({ error: "Укажите дату и время дегустации" }, { status: 400 });

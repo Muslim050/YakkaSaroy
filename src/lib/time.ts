@@ -11,6 +11,13 @@ export function todayISO(now = new Date()) {
   return dayFormat.format(now);
 }
 
+const minuteFormat = new Intl.DateTimeFormat("sv-SE", { timeZone: VENUE_TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+
+/** "YYYY-MM-DDTHH:mm" of the given moment in Tashkent (now by default). */
+export function nowLocalISO(now = new Date()) {
+  return minuteFormat.format(now).replace(" ", "T");
+}
+
 /** Calendar arithmetic on "YYYY-MM-DD" strings, independent of any time zone. */
 export function addDaysISO(iso: string, n: number) {
   const [y, m, d] = iso.split("-").map(Number);

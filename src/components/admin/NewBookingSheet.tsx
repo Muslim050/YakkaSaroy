@@ -9,6 +9,7 @@ import { EVENT_TYPES, HALLS, MORNING_CAPACITY, MORNING_WINDOWS, RESTAURANT_HOURS
 import { formatDateTime, formatDay, formatPhone, formatSum, hallCost, maskPhone, STATUS, type Booking, type BookingStatus } from "@/lib/bookings";
 import { fromISO, monthKeyOf, useMonthAvailability, useToday, invalidateAvailability } from "@/lib/availability";
 import { addDaysISO } from "@/lib/time";
+import { PaymentsModal } from "./PaymentsModal";
 import {
   defaultSelection,
   forEventType,
@@ -138,7 +139,7 @@ function Body({ preset, booking: b, catalog, onDone, onSaved }: { preset: NewBoo
   const [comment, setComment] = useState(b?.comment ?? "");
   // only an existing booking has these
   const [status, setStatus] = useState<BookingStatus>(b?.status ?? "new");
-  const [prepayment, setPrepayment] = useState(b?.prepayment ? String(b.prepayment) : "");
+  const [paying, setPaying] = useState(false);
   const [managerNote, setManagerNote] = useState(b?.managerNote ?? "");
   const [cancelOpen, setCancelOpen] = useState(false);
   /** The program as the booking has it, to tell whether it was changed. */
@@ -204,7 +205,7 @@ function Body({ preset, booking: b, catalog, onDone, onSaved }: { preset: NewBoo
   ].filter((x): x is string => typeof x === "string" && x.length > 0);
 
   const total = hallSum + programSum;
-  const prepaid = Number(prepayment) || 0;
+  const prepaid = b?.prepayment ?? 0;
   const paidPct = total ? Math.min(100, Math.round((prepaid / total) * 100)) : 0;
   /** What differs from the saved booking; only this is sent. */
   const changes: Record<string, unknown> = {};
@@ -220,7 +221,6 @@ function Body({ preset, booking: b, catalog, onDone, onSaved }: { preset: NewBoo
     if (morning && pickedWindow && pickedWindow.id !== (b.startTime ?? "")) changes.startTime = pickedWindow.id;
     if (JSON.stringify(selection) !== programKey0) changes.extras = selection;
     if (status !== b.status) changes.status = status;
-    if (prepaid !== (b.prepayment ?? 0)) changes.prepayment = prepaid;
     if (managerNote !== (b.managerNote ?? "")) changes.managerNote = managerNote;
   }
   const dirty = Object.keys(changes).length > 0;
@@ -303,7 +303,7 @@ function Body({ preset, booking: b, catalog, onDone, onSaved }: { preset: NewBoo
   /** Sends changes of an existing booking and closes the window; false when the server refused. */
   async function save(patch: Record<string, unknown>) {
     if (!b) return false;
-    if (patch.status === "prepaid" && !prepaid) return setError("Для статуса «Предоплата внесена» укажите сумму предоплаты"), false;
+    if (patch.status === "prepaid" && !prepaid) return setError("Для статуса «Предоплата внесена» сначала добавьте поступление"), false;
     setBusy(true);
     setError("");
     const r = await api(`/api/admin/bookings/${b.id}`, "PATCH", patch);
@@ -557,11 +557,15 @@ function Body({ preset, booking: b, catalog, onDone, onSaved }: { preset: NewBoo
                   </SelectContent>
                 </Select>
               </label>
-              <label className={field}>
+              <div className={field}>
                 Предоплата, сум
-                <Input type="number" min={0} step={100000} inputMode="numeric" value={prepayment} onChange={(e) => setPrepayment(e.target.value)} placeholder={total ? `30% — ${formatSum(Math.round((total * 0.3) / 1_000_000) * 1_000_000)}` : "Не внесена"} className="h-10" />
-              </label>
-              {/* how much of the banquet is paid; follows the sum as it is typed */}
+                <button type="button" disabled={dirty} onClick={() => setPaying(true)} className="flex h-10 items-center justify-between gap-3 rounded-lg border border-input px-2.5 text-left hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60">
+                  <span className={cn("truncate tabular-nums", !prepaid && "text-muted-foreground")}>{prepaid ? formatSum(prepaid) : "Не внесена"}</span>
+                  <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-gold-dim"><Plus className="size-3.5" /> Поступления</span>
+                </button>
+                {dirty && <p className="text-xs text-muted-foreground">Сохраните изменения, чтобы внести поступление.</p>}
+              </div>
+              {/* how much of the banquet is paid */}
               {total > 0 && (
                 <div className="sm:col-span-2">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm text-muted-foreground tabular-nums">
@@ -741,6 +745,7 @@ function Body({ preset, booking: b, catalog, onDone, onSaved }: { preset: NewBoo
         onIndex={(i) => setBox((b) => (b ? { ...b, index: i } : b))}
         onClose={() => setBox(null)}
       />
+      {b && <PaymentsModal booking={paying ? b : null} catalog={catalog} onClose={() => setPaying(false)} onSaved={onSaved} />}
       {b && (
         <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
           <AlertDialogContent>

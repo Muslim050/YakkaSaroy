@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowUpRight, CalendarCheck, Coins, Gem, Phone, type LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CalendarCheck, Coins, Gem, Phone } from "lucide-react";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { HallCalendar } from "@/components/admin/HallCalendar";
+import { Kpi } from "@/components/admin/Kpi";
 import { Loader } from "@/components/app/Loader";
 import { requireAdmin } from "@/lib/auth";
 import { overview, todayISO } from "@/lib/store";
@@ -33,7 +33,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/admin">["s
       <h1 className="sr-only">Обзор</h1>
       <div className="mb-8 rounded-[24px] border border-border bg-[#f6f2ee] p-4 shadow-[0_16px_45px_-30px_rgba(50,38,28,.3)] sm:p-5">
       <div className="mb-7 grid gap-3 sm:grid-cols-3">
-        <Kpi icon={CalendarCheck} label="Новые заявки" value={String(o.newRequests.length)} note="ждут звонка" href="/admin/bookings?status=new" alert={o.newRequests.length > 0} />
+        <Kpi icon={CalendarCheck} label="Новые заявки" value={String(o.newRequests.length)} note="ждут звонка" href="/admin/bookings?status=new&month=all" alert={o.newRequests.length > 0} />
         <Kpi icon={Gem} label="Торжеств за 30 дней" value={String(o.next30)} note="во всех залах" href="#calendar" />
         <Kpi icon={Coins} label="Предоплаты за 30 дней" value={formatSumShort(o.prepaid30)} note={`из ${formatSumShort(o.expected30)} по банкетному меню`} />
       </div>
@@ -47,7 +47,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/admin">["s
         <section className="rounded-xl border border-border bg-card">
           <header className="flex items-center justify-between border-b border-border px-5 py-4">
             <h2 className="font-display text-2xl text-night">Ближайшие 7 дней</h2>
-            <Link href="/admin/bookings" className="text-sm text-muted-foreground hover:text-ink">Все брони</Link>
+            <Link href="/admin/bookings?month=all" className="text-sm text-muted-foreground hover:text-ink">Все брони</Link>
           </header>
           {byDay.size ? (
             <ol>
@@ -129,33 +129,6 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/admin">["s
         </div>
       </div>
     </>
-  );
-}
-
-function Kpi({ icon: Icon, label, value, note, href, alert }: { icon: LucideIcon; label: string; value: string; note: string; href?: string; alert?: boolean }) {
-  const body = (
-    <>
-      <span className="flex items-start gap-3">
-        <span className="mt-0.5 shrink-0 text-[#b77a2a]">
-          <Icon className="size-5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-1 text-xs font-medium text-ink">{label}{href && <ArrowUpRight className="ml-auto size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />}</span>
-          <span className="mt-1 block text-2xl font-semibold leading-none text-ink tabular-nums">{value}</span>
-          <span className="mt-1.5 block text-[11px] leading-snug text-muted-foreground">{note}</span>
-        </span>
-      </span>
-    </>
-  );
-  const cls = cn(
-    "group rounded-2xl border px-4 py-3 transition-colors shadow-[0_8px_22px_-14px_rgba(50,38,28,.3)]",
-    label === "Новые заявки" || alert ? "border-[#efd6b3] bg-[#fbefe1]" : "border-border bg-card",
-    href && "hover:border-gold/60",
-  );
-  return href ? (
-    <Link href={href} className={cls}>{body}</Link>
-  ) : (
-    <div className={cls}>{body}</div>
   );
 }
 

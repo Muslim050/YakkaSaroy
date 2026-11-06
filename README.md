@@ -86,7 +86,7 @@ pnpm dev
 - «Сегодня» везде считается по Ташкенту (`src/lib/time.ts`), потому что серверы Vercel работают в UTC.
 - `src/lib/session.ts`, `src/lib/auth.ts` — подписанная httpOnly-cookie и проверка роли. Каждая страница и каждый API-маршрут проверяют сессию на сервере.
 - `src/app/api/auth/*` — вход и выход, не больше 5 неудачных попыток за 15 минут.
-- `src/app/api/admin/bookings` — создание и правка броней администратором.
+- `src/app/api/admin/bookings` — создание и правка броней администратором; `[id]/payments` ведёт поступления по банкету, а `bookings.prepayment` всегда равна их сумме.
 - `src/app/api/admin/catalog` — правка каталога программы; `catalog/upload` выдаёт браузеру токен для загрузки в Vercel Blob.
 - `src/app/api/availability`, `src/app/api/bookings` — занятость и заявка с сайта.
 

@@ -48,6 +48,10 @@ export type Booking = {
   demo?: boolean;
 };
 
+/** Money received for a banquet. `paidAt` is local Tashkent time, "YYYY-MM-DDTHH:mm". */
+export type Payment = { id: string; amount: number; paidAt: string; comment?: string };
+export type PaymentInput = Omit<Payment, "id">;
+
 /** Uzbek numbers as 12 digits with the 998 country code, so "+998 90 123-45-67" and "901234567" match. */
 export function phoneDigits(phone: string) {
   const d = phone.replace(/\D/g, "");
@@ -93,8 +97,18 @@ export function formatSumShort(n: number) {
   return formatSum(n);
 }
 
+export function formatAmount(n: number) {
+  return n.toLocaleString("ru-RU").replace(/,/g, " ");
+}
+
 export function formatSum(n: number) {
-  return `${n.toLocaleString("ru-RU").replace(/,/g, " ")} сум`;
+  return `${formatAmount(n)} сум`;
+}
+
+/** "2026-11-06T15:48" -> "06.11.2026, 15:48" */
+export function formatPaidAt(value: string) {
+  const [day, time] = value.split("T");
+  return `${day.split("-").reverse().join(".")}, ${time}`;
 }
 
 const MONTHS_GEN = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];

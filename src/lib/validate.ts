@@ -1,5 +1,5 @@
 import { EVENT_TYPES, HALLS, MORNING_TIMES, RESTAURANT_HOURS, SLOTS, type HallId } from "./data";
-import { STATUS_ORDER, type BookingStatus } from "./bookings";
+import { STATUS_ORDER, type BookingStatus, type PaymentInput } from "./bookings";
 import type { CategoryId, Media } from "./program";
 import type { OptionInput } from "./store";
 
@@ -18,6 +18,16 @@ export function checkGuests(hall: HallId, guests: number, by: "client" | "admin"
   const def = HALLS.find((h) => h.id === hall);
   const max = by === "admin" && hall !== "restaurant" ? MANAGER_GUESTS_CAP : (def?.guestsMax ?? 0);
   return Number.isInteger(guests) && guests >= 1 && guests <= max ? null : `Количество гостей: от 1 до ${max}`;
+}
+
+/** A received sum, its date and an optional comment, as the payments window sends them. */
+export function parsePayment(body: Record<string, unknown>): { ok: true; value: PaymentInput } | { ok: false; error: string } {
+  const amount = Number(body.amount);
+  if (!Number.isInteger(amount) || amount <= 0 || amount > 1e13) return { ok: false, error: "Укажите сумму поступления" };
+  const paidAt = String(body.paidAt ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(paidAt) || Number.isNaN(new Date(paidAt).getTime())) return { ok: false, error: "Укажите дату поступления" };
+  const comment = String(body.comment ?? "").trim().slice(0, 200);
+  return { ok: true, value: { amount, paidAt, comment: comment || undefined } };
 }
 
 export function isMorningTime(v: unknown): v is string {
