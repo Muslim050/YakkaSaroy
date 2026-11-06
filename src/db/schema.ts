@@ -48,6 +48,26 @@ export const bookings = pgTable(
   ],
 );
 
+/**
+ * Money received for a banquet. `bookings.prepayment` stays the sum of these rows,
+ * so everything that shows what was paid keeps reading a single number.
+ */
+export const bookingPayments = pgTable(
+  "booking_payments",
+  {
+    id: text("id").primaryKey(),
+    bookingId: text("booking_id")
+      .notNull()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    amount: bigint("amount", { mode: "number" }).notNull(),
+    /** local Tashkent time, "YYYY-MM-DDTHH:mm" */
+    paidAt: text("paid_at").notNull(),
+    comment: text("comment"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("booking_payments_booking_idx").on(t.bookingId)],
+);
+
 /** Program catalog options; category titles and rules live in code (programSeed). */
 export const programOptions = pgTable("program_options", {
   id: text("id").primaryKey(),

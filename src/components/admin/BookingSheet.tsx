@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, ErrorNote } from "./fields";
+import { PaymentsModal } from "./PaymentsModal";
 
 const STATUS_DOT: Record<BookingStatus, string> = { new: "bg-amber-500", confirmed: "bg-sky-500", prepaid: "bg-emerald-600", done: "bg-stone-400", cancelled: "bg-rose-500" };
 
@@ -129,7 +130,6 @@ function Body({ booking: b, catalog, onSaved }: { booking: Booking; catalog: Cat
     guests: String(b.guests),
     eventType: b.eventType ?? "",
     comment: b.comment ?? "",
-    prepayment: b.prepayment ? String(b.prepayment) : "",
     startTime: b.startTime ?? "",
     managerNote: b.managerNote ?? "",
     status: b.status,
@@ -138,13 +138,14 @@ function Body({ booking: b, catalog, onSaved }: { booking: Booking; catalog: Cat
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [paying, setPaying] = useState(false);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
     setSaved(false);
   };
   const total = estimateTotal({ hall: b.hall, guests: Number(form.guests) || 0, extras: b.extras }, catalog);
-  const prepayment = Number(form.prepayment) || 0;
+  const prepayment = b.prepayment ?? 0;
   const paidPct = total ? Math.min(100, Math.round((prepayment / total) * 100)) : null;
 
   const changes = () => {
@@ -154,7 +155,6 @@ function Body({ booking: b, catalog, onSaved }: { booking: Booking; catalog: Cat
     if (Number(form.guests) !== b.guests) p.guests = Number(form.guests);
     if (form.eventType && form.eventType !== (b.eventType ?? "")) p.eventType = form.eventType;
     if (form.comment !== (b.comment ?? "")) p.comment = form.comment;
-    if (prepayment !== (b.prepayment ?? 0)) p.prepayment = prepayment;
     if (form.startTime !== (b.startTime ?? "")) p.startTime = form.startTime;
     if (form.managerNote !== (b.managerNote ?? "")) p.managerNote = form.managerNote;
     if (form.status !== b.status) p.status = form.status;
@@ -163,7 +163,7 @@ function Body({ booking: b, catalog, onSaved }: { booking: Booking; catalog: Cat
   const dirty = Object.keys(changes()).length > 0;
 
   async function save(extra: Record<string, unknown> = {}) {
-    if (changes().status === "prepaid" && !prepayment) return setError("Для статуса «Предоплата внесена» укажите сумму предоплаты"), false;
+    if (changes().status === "prepaid" && !prepayment) return setError("Для статуса «Предоплата внесена» сначала добавьте поступление"), false;
     setBusy(true);
     setError("");
     const r = await api(`/api/admin/bookings/${b.id}`, "PATCH", { ...changes(), ...extra });
@@ -319,9 +319,10 @@ function Body({ booking: b, catalog, onSaved }: { booking: Booking; catalog: Cat
                   <div className="h-full rounded-full bg-emerald-600" style={{ width: `${paidPct}%` }} />
                 </div>
               )}
-              <Tile icon={Banknote} label="Предоплата, сум" htmlFor="bs-prepay" hint={total ? `30% — ${formatSum(Math.round((total * 0.3) / 1_000_000) * 1_000_000)}` : undefined}>
-                <Input id="bs-prepay" type="number" min={0} step={100000} inputMode="numeric" value={form.prepayment} onChange={set("prepayment")} placeholder="Не внесена" className={BARE} />
-              </Tile>
+              <button type="button" disabled={dirty} onClick={() => setPaying(true)} className="flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60">
+                <Banknote className="size-4 text-gold-dim" /> Поступления
+              </button>
+              {dirty && <p className="text-xs text-muted-foreground">Сохраните изменения, чтобы внести поступление.</p>}
             </Group>
           )}
 
@@ -360,6 +361,8 @@ function Body({ booking: b, catalog, onSaved }: { booking: Booking; catalog: Cat
           </div>
         </div>
       </form>
+
+      <PaymentsModal booking={paying ? b : null} catalog={catalog} onClose={() => setPaying(false)} onSaved={onSaved} />
 
       <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <AlertDialogContent>
