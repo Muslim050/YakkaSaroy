@@ -119,6 +119,8 @@ function Body({ booking: b, catalog, onChanged, onClose }: { booking: Booking; c
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // React bubbles through portals: opened from the booking form, this submit would also save and close that form.
+    e.stopPropagation();
     if (!Number(amount)) return setError("Укажите сумму поступления");
     const body = { amount: Number(amount), paidAt, comment };
     const url = `/api/admin/bookings/${b.id}/payments`;
