@@ -1,11 +1,21 @@
 import type { Metadata } from "next";
-import { Forum, Golos_Text } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
 // Forum: Roman inscriptional capitals, in step with the colonnaded facade. Golos Text: drawn for Cyrillic UI.
-const forum = Forum({ variable: "--font-forum", subsets: ["latin", "cyrillic"], weight: "400" });
-const golos = Golos_Text({ variable: "--font-golos", subsets: ["latin", "cyrillic"], weight: ["400", "500", "600"] });
+// Self-hosted: next/font/google fails the Turbopack build whenever Google answers with a font URL containing "&".
+const forum = localFont({
+  src: "./fonts/Forum-Regular.woff2",
+  variable: "--font-forum",
+  weight: "400",
+  adjustFontFallback: "Times New Roman",
+});
+const golos = localFont({
+  src: "./fonts/GolosText-Variable.woff2",
+  variable: "--font-golos",
+  weight: "400 600",
+});
 
 export const metadata: Metadata = {
   title: "Yakka Saroy — банкетный зал и ресторан в Ташкенте",
