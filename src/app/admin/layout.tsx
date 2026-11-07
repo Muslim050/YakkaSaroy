@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 import { AppShell } from "@/components/app/AppShell";
 import { UserMenu } from "@/components/app/UserMenu";
 import { requireAdmin } from "@/lib/auth";
@@ -21,6 +22,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <AppShell home="/admin" label="Администрирование" nav={NAV} account={<Account />}>
       {children}
+      <Toaster position="bottom-right" richColors closeButton toastOptions={{ style: { fontFamily: "var(--font-sans)" } }} />
     </AppShell>
   );
 }

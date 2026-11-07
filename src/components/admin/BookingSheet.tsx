@@ -23,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api, ErrorNote } from "./fields";
+import { api, ErrorNote, notifyBookingSaved } from "./fields";
 import { PaymentsModal } from "./PaymentsModal";
 
 const STATUS_DOT: Record<BookingStatus, string> = { new: "bg-amber-500", confirmed: "bg-sky-500", prepaid: "bg-emerald-600", done: "bg-stone-400", cancelled: "bg-rose-500" };
@@ -166,12 +166,14 @@ function Body({ booking: b, catalog, onSaved }: { booking: Booking; catalog: Cat
     if (changes().status === "prepaid" && !prepayment) return setError("Для статуса «Предоплата внесена» сначала добавьте поступление"), false;
     setBusy(true);
     setError("");
-    const r = await api(`/api/admin/bookings/${b.id}`, "PATCH", { ...changes(), ...extra });
+    const patch = { ...changes(), ...extra };
+    const r = await api(`/api/admin/bookings/${b.id}`, "PATCH", patch);
     setBusy(false);
     if (!r.ok) {
       setError(r.error);
       return false;
     }
+    notifyBookingSaved(b, patch);
     setSaved(true);
     onSaved?.(r.json.booking as Booking);
     router.refresh();

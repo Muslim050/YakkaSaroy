@@ -1,7 +1,9 @@
 "use client";
 
+import { toast } from "sonner";
 import { LayoutGrid, List, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Booking } from "@/lib/bookings";
 import { Label } from "@/components/ui/label";
 
 /** Small building blocks shared by the admin sheets. */
@@ -62,6 +64,13 @@ export function ViewSwitch({ view, onChange, listLabel }: { view: "grid" | "tabl
       ))}
     </div>
   );
+}
+
+/** Tells the manager what a saved change did to a booking: `booking` is its state before the change. */
+export function notifyBookingSaved(booking: Booking, patch: Record<string, unknown>) {
+  if (patch.status === "cancelled") toast.success(`Бронь ${booking.code} отменена`);
+  else if (patch.status && booking.status === "cancelled") toast.success(`Бронь ${booking.code} восстановлена`);
+  else toast.success(`Бронь ${booking.code} успешно обновлена`);
 }
 
 export async function api(url: string, method: "POST" | "PATCH" | "DELETE", body?: unknown) {

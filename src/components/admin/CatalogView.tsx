@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { EyeOff, ImageOff, Plus, Undo2 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   editable,
@@ -384,6 +385,7 @@ function Removed({ category }: { category: ProgramCategory }) {
     const r = await api(`/api/admin/catalog/${option.id}`, "PATCH", { restore: true });
     setBusy("");
     if (!r.ok) return setError(r.error);
+    toast.success(`Вариант «${option.title}» возвращён скрытым`);
     router.refresh();
   }
 

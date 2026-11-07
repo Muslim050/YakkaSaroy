@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Circle, Moon, Phone, Plus, Sun } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { EVENT_TYPES, HALLS, MORNING_CAPACITY, MORNING_WINDOWS, RESTAURANT_HOURS, SLOTS, morningWindow, type BanquetHallId, type HallId, type SlotId } from "@/lib/data";
 import { formatDateTime, formatDay, formatPhone, formatSum, hallCost, maskPhone, STATUS, type Booking, type BookingStatus } from "@/lib/bookings";
@@ -43,7 +44,7 @@ import { Modal, ModalClose, ModalContent, ModalDescription, ModalTitle } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api, ErrorNote } from "./fields";
+import { api, ErrorNote, notifyBookingSaved } from "./fields";
 
 export type NewBookingPreset = { hall?: HallId; date?: string; slot?: string };
 
@@ -295,6 +296,7 @@ function Body({ preset, booking: b, catalog, onDone, onSaved }: { preset: NewBoo
       setError(r.error);
       return;
     }
+    toast.success(`Бронь ${(r.json.booking as Booking).code} успешно создана`);
     invalidateAvailability();
     router.refresh();
     onDone();
@@ -313,6 +315,7 @@ function Body({ preset, booking: b, catalog, onDone, onSaved }: { preset: NewBoo
       invalidateAvailability();
       return false;
     }
+    notifyBookingSaved(b, patch);
     invalidateAvailability();
     onSaved?.(r.json.booking as Booking);
     router.refresh();
