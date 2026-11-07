@@ -1,7 +1,9 @@
 "use client";
 
+import { toast } from "sonner";
+import { LayoutGrid, List, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
+import type { Booking } from "@/lib/bookings";
 import { Label } from "@/components/ui/label";
 
 /** Small building blocks shared by the admin sheets. */
@@ -36,6 +38,39 @@ export function ErrorNote({ error }: { error: string }) {
       {error}
     </p>
   );
+}
+
+/** Cards or a plain list, for the pages that show both. */
+export function ViewSwitch({ view, onChange, listLabel }: { view: "grid" | "table"; onChange: (view: "grid" | "table") => void; listLabel: string }) {
+  return (
+    <div role="group" aria-label="Вид списка" className="ml-auto flex shrink-0 gap-1 rounded-lg border border-border bg-card p-1">
+      {(
+        [
+          { id: "grid", label: "Карточками", icon: LayoutGrid },
+          { id: "table", label: listLabel, icon: List },
+        ] as const
+      ).map(({ id, label, icon: Icon }) => (
+        <button
+          key={id}
+          type="button"
+          aria-label={label}
+          title={label}
+          aria-pressed={view === id}
+          onClick={() => onChange(id)}
+          className={cn("grid size-8 place-items-center rounded-md transition-colors", view === id ? "bg-night text-ivory" : "text-muted-foreground hover:bg-secondary hover:text-ink")}
+        >
+          <Icon className="size-4" />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Tells the manager what a saved change did to a booking: `booking` is its state before the change. */
+export function notifyBookingSaved(booking: Booking, patch: Record<string, unknown>) {
+  if (patch.status === "cancelled") toast.success(`Бронь ${booking.code} отменена`);
+  else if (patch.status && booking.status === "cancelled") toast.success(`Бронь ${booking.code} восстановлена`);
+  else toast.success(`Бронь ${booking.code} успешно обновлена`);
 }
 
 export async function api(url: string, method: "POST" | "PATCH" | "DELETE", body?: unknown) {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Lock } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDay, formatSum, formatSumShort, hallCost, hallName, slotLabel, type Booking } from "@/lib/bookings";
 import { HALLS } from "@/lib/data";
@@ -60,7 +61,7 @@ export function ProgramPlanner({
   const saved = useMemo(() => withDefaults(catalog, b.extras), [catalog, b.extras]);
   const [sel, setSel] = useState<ProgramSelection>(saved);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [error, setError] = useState("");
 
   const dirty = canon(catalog, sel) !== canon(catalog, saved);
   const hall = hallCost(b) ?? 0;
@@ -70,7 +71,7 @@ export function ProgramPlanner({
   const pricePerGuest = HALLS.find((h) => h.id === b.hall)?.pricePerGuest ?? 0;
 
   function toggle(c: ProgramCategory, id: string) {
-    setMsg(null);
+    setError("");
     setSel((s) => {
       const cur = s[c.id] ?? [];
       const on = cur.includes(id);
@@ -85,12 +86,12 @@ export function ProgramPlanner({
 
   async function save() {
     setBusy(true);
-    setMsg(null);
+    setError("");
     const res = await fetch(endpoint, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ extras: sel }) });
     const json = (await res.json().catch(() => ({}))) as { error?: string };
     setBusy(false);
-    if (!res.ok) return setMsg({ ok: false, text: json.error ?? "Не получилось сохранить" });
-    setMsg({ ok: true, text: "Программа сохранена, менеджер её видит" });
+    if (!res.ok) return setError(json.error ?? "Не получилось сохранить");
+    toast.success(`Программа брони ${b.code} успешно сохранена`);
     router.refresh();
   }
 
@@ -191,7 +192,7 @@ export function ProgramPlanner({
           {editable && (
             <div className="hidden border-t border-border px-5 py-4 lg:block">
               <SaveButton busy={busy} dirty={dirty} onSave={save} />
-              {msg && <p role="status" className={cn("mt-2 text-sm", msg.ok ? "text-emerald-800" : "text-rose-800")}>{msg.text}</p>}
+              {error && <p role="alert" className="mt-2 text-sm text-rose-800">{error}</p>}
             </div>
           )}
         </aside>
@@ -208,7 +209,7 @@ export function ProgramPlanner({
               <SaveButton busy={busy} dirty={dirty} onSave={save} />
             </div>
           </div>
-          {msg && <p role="status" className={cn("mx-auto mt-1 max-w-xl text-xs", msg.ok ? "text-emerald-800" : "text-rose-800")}>{msg.text}</p>}
+          {error && <p role="alert" className="mx-auto mt-1 max-w-xl text-xs text-rose-800">{error}</p>}
         </div>
       )}
     </div>

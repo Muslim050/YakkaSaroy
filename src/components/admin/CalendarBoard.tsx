@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Armchair, ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Layers, Moon, Phone, Plus, Sun, Users } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { HALLS, SLOTS, morningWindow, slotCapacity, type HallId, type SlotId } from "@/lib/data";
 import { STATUS, formatDay, formatPhone, hallName, type Booking, type BookingStatus } from "@/lib/bookings";
@@ -106,7 +107,6 @@ export function CalendarBoard({
   const [move, setMove] = useState<{ booking: Booking; to: Target } | null>(null);
   const [moveError, setMoveError] = useState("");
   const [moving, setMoving] = useState(false);
-  const [notice, setNotice] = useState("");
 
   // A cancelled booking leaves the board; keep showing its saved copy until the sheet is closed.
   const fromBoard = openId ? bookings.find((b) => b.id === openId) : undefined;
@@ -176,12 +176,6 @@ export function CalendarBoard({
     return () => window.removeEventListener("keydown", onKey);
   }, [router, path, month, hall]);
 
-  useEffect(() => {
-    if (!notice) return;
-    const t = setTimeout(() => setNotice(""), 4000);
-    return () => clearTimeout(t);
-  }, [notice]);
-
   async function confirmMove() {
     if (!move) return;
     setMoving(true);
@@ -197,7 +191,7 @@ export function CalendarBoard({
       setMoveError(json.error ?? "Не удалось перенести бронь");
       return;
     }
-    setNotice(`${move.booking.name}: перенесено на ${formatDay(move.to.date)}, ${slotName(move.to.slot)}`);
+    toast.success(`Бронь ${move.booking.code} перенесена на ${formatDay(move.to.date)}, ${slotName(move.to.slot)}`);
     setMove(null);
     router.refresh();
   }
@@ -620,10 +614,6 @@ export function CalendarBoard({
           )}
         </AlertDialogContent>
       </AlertDialog>
-
-      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
-        {notice && <p className="pointer-events-auto rounded-full bg-night px-5 py-2.5 text-sm text-ivory shadow-lg">{notice}</p>}
-      </div>
     </>
   );
 }

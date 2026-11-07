@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, LayoutGrid, List, Phone, Search } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Phone, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDay, formatPhone, formatSum, hallName, phoneDigits, slotLabel, type Booking } from "@/lib/bookings";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ViewSwitch } from "./fields";
 
 type Client = { phone: string; name: string; bookings: number; upcoming: number; nextDate?: string; lastDate: string; spent: number; total: number };
 
@@ -65,26 +66,7 @@ export function ClientsView({
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Имя или телефон" aria-label="Поиск клиента" className="h-10 bg-card pl-9" />
         </div>
-        <div role="group" aria-label="Вид списка" className="ml-auto flex shrink-0 gap-1 rounded-lg border border-border bg-card p-1">
-          {(
-            [
-              { id: "grid", label: "Карточками", icon: LayoutGrid },
-              { id: "table", label: "Таблицей", icon: List },
-            ] as const
-          ).map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              aria-label={label}
-              title={label}
-              aria-pressed={view === id}
-              onClick={() => setView(id)}
-              className={cn("grid size-8 place-items-center rounded-md transition-colors", view === id ? "bg-night text-ivory" : "text-muted-foreground hover:bg-secondary hover:text-ink")}
-            >
-              <Icon className="size-4" />
-            </button>
-          ))}
-        </div>
+        <ViewSwitch view={view} onChange={setView} listLabel="Таблицей" />
       </div>
 
       {view === "grid" && (

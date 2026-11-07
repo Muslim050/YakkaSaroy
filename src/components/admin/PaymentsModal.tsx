@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { estimateTotal, formatAmount, formatPaidAt, formatSum, type Booking, type Payment } from "@/lib/bookings";
 import type { Catalog } from "@/lib/program";
 import { nowLocalISO } from "@/lib/time";
@@ -119,10 +120,13 @@ function Body({ booking: b, catalog, onChanged, onClose }: { booking: Booking; c
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // React bubbles through portals: opened from the booking form, this submit would also save and close that form.
+    e.stopPropagation();
     if (!Number(amount)) return setError("Укажите сумму поступления");
     const body = { amount: Number(amount), paidAt, comment };
     const url = `/api/admin/bookings/${b.id}/payments`;
     if (await send(editing ? `${url}/${editing.id}` : url, editing ? "PATCH" : "POST", body)) {
+      toast.success(`Поступление ${formatSum(body.amount)} по брони ${b.code} успешно ${editing ? "обновлено" : "добавлено"}`);
       resetForm();
       setTab("history");
     }
@@ -130,7 +134,10 @@ function Body({ booking: b, catalog, onChanged, onClose }: { booking: Booking; c
 
   async function remove() {
     if (!removing) return;
-    if (await send(`/api/admin/bookings/${b.id}/payments/${removing.id}`, "DELETE")) setRemoving(null);
+    if (await send(`/api/admin/bookings/${b.id}/payments/${removing.id}`, "DELETE")) {
+      toast.success(`Поступление ${formatSum(removing.amount)} по брони ${b.code} удалено`);
+      setRemoving(null);
+    }
   }
 
   return (

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatSum } from "@/lib/bookings";
 import { EVENT_TYPES } from "@/lib/data";
@@ -113,6 +114,7 @@ function Body({ target: { category, option, nextOrder }, usage, uploads, onDone 
     const r = option ? await api(`/api/admin/catalog/${option.id}`, "PATCH", body) : await api("/api/admin/catalog", "POST", { ...body, category: category.id });
     setBusy(false);
     if (!r.ok) return setError(r.error);
+    toast.success(`Вариант «${form.title.trim()}» успешно ${option ? "обновлён" : "создан"}`);
     router.refresh();
     onDone();
   }
@@ -126,6 +128,7 @@ function Body({ target: { category, option, nextOrder }, usage, uploads, onDone 
       setRemoveOpen(false);
       return setError(r.error);
     }
+    toast.success(`Вариант «${option.title}» удалён`);
     router.refresh();
     onDone();
   }
