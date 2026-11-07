@@ -17,7 +17,7 @@ import { priceLabel } from "@/components/program/OptionCard";
 import { MediaThumb, MediaView } from "@/components/program/MediaView";
 import { Lightbox } from "@/components/program/Lightbox";
 import { OptionSheet, type OptionTarget } from "./OptionSheet";
-import { api } from "./fields";
+import { api, ViewSwitch } from "./fields";
 
 function mediaCount(o: ProgramOption) {
   const photos = o.media.filter((m) => m.kind === "image").length;
@@ -43,6 +43,7 @@ export function CatalogView({
     categoryId: string;
     optionId: string | null;
   } | null>(null);
+  const [view, setView] = useState<"grid" | "table">("grid");
 
   // Re-read from props after a refresh so the panel never edits a stale copy.
   const open: OptionTarget | null = (() => {
@@ -63,23 +64,26 @@ export function CatalogView({
 
   return (
     <>
-      <nav
-        aria-label="Разделы каталога"
-        className="scroll-x -mx-4 mb-8 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0"
-      >
-        {catalog.map((c) => (
-          <a
-            key={c.id}
-            href={`#cat-${c.id}`}
-            className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm text-ink hover:border-night/40"
-          >
-            {c.title}
-            <span className="text-xs text-muted-foreground">
-              {editable(c).length}
-            </span>
-          </a>
-        ))}
-      </nav>
+      <div className="mb-8 flex items-center gap-3">
+        <nav
+          aria-label="Разделы каталога"
+          className="scroll-x -ml-4 flex min-w-0 flex-1 gap-2 overflow-x-auto pl-4 sm:ml-0 sm:pl-0"
+        >
+          {catalog.map((c) => (
+            <a
+              key={c.id}
+              href={`#cat-${c.id}`}
+              className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm text-ink hover:border-night/40"
+            >
+              {c.title}
+              <span className="text-xs text-muted-foreground">
+                {editable(c).length}
+              </span>
+            </a>
+          ))}
+        </nav>
+        <ViewSwitch view={view} onChange={setView} listLabel="Списком" />
+      </div>
 
       <div className="grid gap-12">
         {catalog.map((c) => (
@@ -87,6 +91,7 @@ export function CatalogView({
             key={c.id}
             category={c}
             usage={usage}
+            view={view}
             onOpen={(optionId) => setTarget({ categoryId: c.id, optionId })}
           />
         ))}
@@ -102,13 +107,52 @@ export function CatalogView({
   );
 }
 
+/** An option's name, price and what is attached to it, in a card and in a list row alike. */
+function OptionInfo({ option: o, used }: { option: ProgramOption; used: number }) {
+  return (
+    <span className="min-w-0 flex-1">
+      <span className="flex flex-wrap items-center gap-2">
+        <span
+          className={cn(
+            "font-medium text-ink",
+            o.hidden && "text-muted-foreground",
+          )}
+        >
+          {o.title}
+        </span>
+        {o.hidden && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
+            <EyeOff className="size-3" /> скрыт
+          </span>
+        )}
+      </span>
+      <span className="mt-0.5 block text-[13px] text-gold-dim">
+        {priceLabel(o)}
+        {o.eventTypes?.length ? (
+          <span className="text-muted-foreground">
+            {" "}
+            · {o.eventTypes.join(", ")}
+          </span>
+        ) : null}
+      </span>
+      <span className="mt-0.5 block text-xs text-muted-foreground">
+        {mediaCount(o)}
+        {used > 0 &&
+          `, в ${used} ${used === 1 ? "брони" : "бронях"}`}
+      </span>
+    </span>
+  );
+}
+
 function CategorySection({
   category: c,
   usage,
+  view,
   onOpen,
 }: {
   category: ProgramCategory;
   usage: Record<string, number>;
+  view: "grid" | "table";
   onOpen: (optionId: string | null) => void;
 }) {
   const [eventType, setEventType] = useState<string | null>(null);
@@ -202,7 +246,43 @@ function CategorySection({
         )}
       </div>
 
-      {list.length ? (
+      {list.length && view === "grid" ? (
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {list.map((o) => (
+            <li key={o.id} className="flex flex-col overflow-hidden rounded-xl border border-border bg-card transition hover:border-gold hover:shadow-sm">
+              {/* the picture: a click opens every photo and video */}
+              <button
+                type="button"
+                disabled={!o.media[0]}
+                onClick={() => setBox({ option: o, index: 0 })}
+                aria-label={o.media[0] ? `Смотреть фото: ${o.title}` : `Без фото: ${o.title}`}
+                className={cn(
+                  "relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-night focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none focus-visible:ring-inset",
+                  o.media[0] && "cursor-zoom-in",
+                  o.hidden && "opacity-50",
+                )}
+              >
+                {o.media[0] ? (
+                  <MediaThumb media={o.media[0]} sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" iconClassName="size-8" />
+                ) : (
+                  <ImageOff className="absolute inset-0 m-auto size-6 text-ivory/50" />
+                )}
+              </button>
+              {/* the text: opens the option to edit */}
+              <button
+                type="button"
+                onClick={() => onOpen(o.id)}
+                className="flex flex-1 items-start gap-3 p-4 text-left transition-colors hover:bg-secondary/60 focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none focus-visible:ring-inset"
+              >
+                <OptionInfo option={o} used={usage[o.id] ?? 0} />
+                <span className="shrink-0 text-xs tabular-nums text-muted-foreground" title="Порядок">
+                  № {o.order}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : list.length ? (
         <ul className="overflow-hidden rounded-xl border border-border bg-card">
           {list.map((o) => {
             const used = usage[o.id] ?? 0;
@@ -239,37 +319,7 @@ function CategorySection({
                   onClick={() => onOpen(o.id)}
                   className="-my-1.5 flex min-w-0 flex-1 items-center gap-4 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-secondary/60"
                 >
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={cn(
-                          "font-medium text-ink",
-                          o.hidden && "text-muted-foreground",
-                        )}
-                      >
-                        {o.title}
-                      </span>
-                      {o.hidden && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
-                          <EyeOff className="size-3" /> скрыт
-                        </span>
-                      )}
-                    </span>
-                    <span className="mt-0.5 block text-[13px] text-gold-dim">
-                      {priceLabel(o)}
-                      {o.eventTypes?.length ? (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          · {o.eventTypes.join(", ")}
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-muted-foreground">
-                      {mediaCount(o)}
-                      {used > 0 &&
-                        `, в ${used} ${used === 1 ? "брони" : "бронях"}`}
-                    </span>
-                  </span>
+                  <OptionInfo option={o} used={used} />
                   <span
                     className="hidden shrink-0 text-xs tabular-nums text-muted-foreground sm:block"
                     title="Порядок"
@@ -328,10 +378,10 @@ function Removed({ category }: { category: ProgramCategory }) {
   const list = category.options.filter((o) => o.archived);
   if (!list.length) return null;
 
-  async function restore(id: string) {
-    setBusy(id);
+  async function restore(option: ProgramOption) {
+    setBusy(option.id);
     setError("");
-    const r = await api(`/api/admin/catalog/${id}`, "PATCH", { restore: true });
+    const r = await api(`/api/admin/catalog/${option.id}`, "PATCH", { restore: true });
     setBusy("");
     if (!r.ok) return setError(r.error);
     router.refresh();
@@ -355,7 +405,7 @@ function Removed({ category }: { category: ProgramCategory }) {
             <button
               type="button"
               disabled={!!busy}
-              onClick={() => restore(o.id)}
+              onClick={() => restore(o)}
               className="flex items-center gap-1.5 text-night hover:underline disabled:opacity-50"
             >
               <Undo2 className="size-3.5" />{" "}

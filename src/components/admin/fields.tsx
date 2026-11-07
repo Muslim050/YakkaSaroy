@@ -1,7 +1,7 @@
 "use client";
 
+import { LayoutGrid, List, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 /** Small building blocks shared by the admin sheets. */
@@ -35,6 +35,32 @@ export function ErrorNote({ error }: { error: string }) {
     <p role="alert" className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2.5 text-sm text-rose-900">
       {error}
     </p>
+  );
+}
+
+/** Cards or a plain list, for the pages that show both. */
+export function ViewSwitch({ view, onChange, listLabel }: { view: "grid" | "table"; onChange: (view: "grid" | "table") => void; listLabel: string }) {
+  return (
+    <div role="group" aria-label="Вид списка" className="ml-auto flex shrink-0 gap-1 rounded-lg border border-border bg-card p-1">
+      {(
+        [
+          { id: "grid", label: "Карточками", icon: LayoutGrid },
+          { id: "table", label: listLabel, icon: List },
+        ] as const
+      ).map(({ id, label, icon: Icon }) => (
+        <button
+          key={id}
+          type="button"
+          aria-label={label}
+          title={label}
+          aria-pressed={view === id}
+          onClick={() => onChange(id)}
+          className={cn("grid size-8 place-items-center rounded-md transition-colors", view === id ? "bg-night text-ivory" : "text-muted-foreground hover:bg-secondary hover:text-ink")}
+        >
+          <Icon className="size-4" />
+        </button>
+      ))}
+    </div>
   );
 }
 
